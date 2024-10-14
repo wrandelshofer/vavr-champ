@@ -26,35 +26,15 @@
  */
 package ch.randelshofer.vavr.champ.euler;
 
-import io.vavr.collection.Stream;
 import io.vavr.collection.List;
+import io.vavr.collection.Stream;
 import org.junit.jupiter.api.Test;
 
-import static java.util.Comparator.reverseOrder;
 import static ch.randelshofer.vavr.champ.euler.Utils.isPrime;
+import static java.util.Comparator.reverseOrder;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler41Test {
-
-    /**
-     * <strong>Problem 41 Pandigital prime</strong>
-     * <p>
-     * We shall say that an <i>n</i>-digit number is pandigital if it makes use
-     * of all the digits 1 to <i>n</i> exactly once. For example, 2143 is a
-     * 4-digit pandigital and is also prime.
-     *
-     * What is the largest <i>n</i>-digit pandigital prime that exists?
-     * <p>
-     * See also <a href="https://projecteuler.net/problem=41">projecteuler.net
-     * problem 41</a>.
-     */
-    @Test
-    public void shouldSolveProblem41() {
-        assertThat(nDigitPandigitalNumbers(4)).contains(2143);
-        assertThat(isPrime(2143)).isTrue();
-
-        assertThat(largestNPandigitalPrime()).isEqualTo(7652413);
-    }
 
     private static int largestNPandigitalPrime() {
         return Stream.rangeClosedBy(9, 1, -1)
@@ -69,5 +49,25 @@ public class Euler41Test {
                 .permutations()
                 .map(List::mkString)
                 .map(Integer::valueOf);
+    }
+
+    /**
+     * <strong>Problem 41 Pandigital prime</strong>
+     * <p>
+     * We shall say that an <i>n</i>-digit number is pandigital if it makes use
+     * of all the digits 1 to <i>n</i> exactly once. For example, 2143 is a
+     * 4-digit pandigital and is also prime.
+     * <p>
+     * What is the largest <i>n</i>-digit pandigital prime that exists?
+     * <p>
+     * See also <a href="https://projecteuler.net/problem=41">projecteuler.net
+     * problem 41</a>.
+     */
+    @Test
+    public void shouldSolveProblem41() {
+        assertThat(nDigitPandigitalNumbers(4)).contains(2143);
+        assertThat(isPrime(2143)).isTrue();
+
+        assertThat(largestNPandigitalPrime()).isEqualTo(7652413);
     }
 }

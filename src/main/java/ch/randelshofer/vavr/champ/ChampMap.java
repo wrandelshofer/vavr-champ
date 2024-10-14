@@ -28,7 +28,6 @@ package ch.randelshofer.vavr.champ;
 
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
-
 import io.vavr.collection.Stream;
 import io.vavr.collection.Traversable;
 import io.vavr.control.Option;
@@ -122,26 +121,24 @@ import static ch.randelshofer.vavr.champ.ChampTrie.BitmapIndexedNode.emptyNode;
  * @param <K> the key type
  * @param <V> the value type
  */
-public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializable {
-    private final ChampTrie.BitmapIndexedNode<java.util.AbstractMap.SimpleImmutableEntry<K, V>> root;
-
-    private static final long serialVersionUID = 1L;
-
-    private static final ChampMap<?, ?> EMPTY = new ChampMap<>(emptyNode(), 0);
-
+public class ChampMap<K, V> implements io.vavr.collection.Map<K, V>, Serializable {
     /**
      * We do not guarantee an iteration order. Make sure that nobody accidentally relies on it.
      * <p>
      * XXX HashSetTest requires a specific iteration order of ChampSet! Therefore, we can not use SALT here.
      */
     static final int SALT = 0;//new java.util.Random().nextInt();
+    private static final long serialVersionUID = 1L;
+
+    private static final ChampMap<?, ?> EMPTY = new ChampMap<>(emptyNode(), 0);
     /**
      * The size of the map.
      */
     final int size;
+    private final ChampTrie.BitmapIndexedNode<java.util.AbstractMap.SimpleImmutableEntry<K, V>> root;
 
     ChampMap(ChampTrie.BitmapIndexedNode<java.util.AbstractMap.SimpleImmutableEntry<K, V>> root, int size) {
-        this.root=root;
+        this.root = root;
         this.size = size;
     }
 
@@ -196,6 +193,38 @@ public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializa
         return (ChampMap<K, V>) EMPTY;
     }
 
+    static <V, K> boolean entryKeyEquals(java.util.AbstractMap.SimpleImmutableEntry<K, V> a, java.util.AbstractMap.SimpleImmutableEntry<K, V> b) {
+        return Objects.equals(a.getKey(), b.getKey());
+    }
+
+    static <V, K> int entryKeyHash(java.util.AbstractMap.SimpleImmutableEntry<K, V> e) {
+        return SALT ^ Objects.hashCode(e.getKey());
+    }
+
+    /**
+     * Returns a ChampMap containing tuples returned by {@code n} calls to a given Supplier {@code s}.
+     *
+     * @param <K> The key type
+     * @param <V> The value type
+     * @param n   The number of elements in the ChampMap
+     * @param s   The Supplier computing element values
+     * @return An ChampMap of size {@code n}, where each element contains the result supplied by {@code s}.
+     * @throws NullPointerException if {@code s} is null
+     */
+    @SuppressWarnings("unchecked")
+    public static <K, V> ChampMap<K, V> fill(int n, Supplier<? extends Tuple2<? extends K, ? extends V>> s) {
+        Objects.requireNonNull(s, "s is null");
+        return ofEntries(Collections.fill(n, (Supplier<? extends Tuple2<K, V>>) s));
+    }
+
+    static <V, K> boolean keyEquals(java.util.AbstractMap.SimpleImmutableEntry<K, V> a, java.util.AbstractMap.SimpleImmutableEntry<K, V> b) {
+        return Objects.equals(a.getKey(), b.getKey());
+    }
+
+    static <V, K> int keyHash(Object e) {
+        return SALT ^ Objects.hashCode(e);
+    }
+
     /**
      * Narrows a widened {@code ChampMap<? extends K, ? extends V>} to {@code ChampMap<K, V>}
      * by performing a type-safe cast. This is eligible because immutable/read-only
@@ -221,50 +250,6 @@ public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializa
      */
     public static <K, V> ChampMap<K, V> of(Tuple2<? extends K, ? extends V> entry) {
         return ChampMap.<K, V>empty().put(entry._1, entry._2);
-    }
-
-    /**
-     * Returns a {@code ChampMap}, from a source java.util.Map.
-     *
-     * @param map A map
-     * @param <K> The key type
-     * @param <V> The value type
-     * @return A new Map containing the given map
-     */
-    public static <K, V> ChampMap<K, V> ofAll(Map<? extends K, ? extends V> map) {
-        return ChampMap.<K, V>empty().putAllEntries(map.entrySet());
-    }
-
-    /**
-     * Returns a {@code ChampMap}, from entries mapped from stream.
-     *
-     * @param stream      the source stream
-     * @param keyMapper   the key mapper
-     * @param valueMapper the value mapper
-     * @param <T>         The stream element type
-     * @param <K>         The key type
-     * @param <V>         The value type
-     * @return A new Map
-     */
-    public static <T, K, V> ChampMap<K, V> ofAll(java.util.stream.Stream<? extends T> stream,
-                                                 Function<? super T, ? extends K> keyMapper,
-                                                 Function<? super T, ? extends V> valueMapper) {
-        return Maps.ofStream(empty(), stream, keyMapper, valueMapper);
-    }
-
-    /**
-     * Returns a {@code ChampMap}, from entries mapped from stream.
-     *
-     * @param stream      the source stream
-     * @param entryMapper the entry mapper
-     * @param <T>         The stream element type
-     * @param <K>         The key type
-     * @param <V>         The value type
-     * @return A new Map
-     */
-    public static <T, K, V> ChampMap<K, V> ofAll(java.util.stream.Stream<? extends T> stream,
-                                                 Function<? super T, Tuple2<? extends K, ? extends V>> entryMapper) {
-        return Maps.ofStream(empty(), stream, entryMapper);
     }
 
     /**
@@ -488,36 +473,47 @@ public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializa
     }
 
     /**
-     * Returns an ChampMap containing {@code n} values of a given Function {@code f}
-     * over a range of integer values from 0 to {@code n - 1}.
+     * Returns a {@code ChampMap}, from a source java.util.Map.
      *
+     * @param map A map
      * @param <K> The key type
      * @param <V> The value type
-     * @param n   The number of elements in the ChampMap
-     * @param f   The Function computing element values
-     * @return An ChampMap consisting of elements {@code f(0),f(1), ..., f(n - 1)}
-     * @throws NullPointerException if {@code f} is null
+     * @return A new Map containing the given map
      */
-    @SuppressWarnings("unchecked")
-    public static <K, V> ChampMap<K, V> tabulate(int n, Function<? super Integer, ? extends Tuple2<? extends K, ? extends V>> f) {
-        Objects.requireNonNull(f, "f is null");
-        return ofEntries(Collections.tabulate(n, (Function<? super Integer, ? extends Tuple2<K, V>>) f));
+    public static <K, V> ChampMap<K, V> ofAll(Map<? extends K, ? extends V> map) {
+        return ChampMap.<K, V>empty().putAllEntries(map.entrySet());
     }
 
     /**
-     * Returns a ChampMap containing tuples returned by {@code n} calls to a given Supplier {@code s}.
+     * Returns a {@code ChampMap}, from entries mapped from stream.
      *
-     * @param <K> The key type
-     * @param <V> The value type
-     * @param n   The number of elements in the ChampMap
-     * @param s   The Supplier computing element values
-     * @return An ChampMap of size {@code n}, where each element contains the result supplied by {@code s}.
-     * @throws NullPointerException if {@code s} is null
+     * @param stream      the source stream
+     * @param keyMapper   the key mapper
+     * @param valueMapper the value mapper
+     * @param <T>         The stream element type
+     * @param <K>         The key type
+     * @param <V>         The value type
+     * @return A new Map
      */
-    @SuppressWarnings("unchecked")
-    public static <K, V> ChampMap<K, V> fill(int n, Supplier<? extends Tuple2<? extends K, ? extends V>> s) {
-        Objects.requireNonNull(s, "s is null");
-        return ofEntries(Collections.fill(n, (Supplier<? extends Tuple2<K, V>>) s));
+    public static <T, K, V> ChampMap<K, V> ofAll(java.util.stream.Stream<? extends T> stream,
+                                                 Function<? super T, ? extends K> keyMapper,
+                                                 Function<? super T, ? extends V> valueMapper) {
+        return Maps.ofStream(empty(), stream, keyMapper, valueMapper);
+    }
+
+    /**
+     * Returns a {@code ChampMap}, from entries mapped from stream.
+     *
+     * @param stream      the source stream
+     * @param entryMapper the entry mapper
+     * @param <T>         The stream element type
+     * @param <K>         The key type
+     * @param <V>         The value type
+     * @return A new Map
+     */
+    public static <T, K, V> ChampMap<K, V> ofAll(java.util.stream.Stream<? extends T> stream,
+                                                 Function<? super T, Tuple2<? extends K, ? extends V>> entryMapper) {
+        return Maps.ofStream(empty(), stream, entryMapper);
     }
 
     /**
@@ -563,6 +559,39 @@ public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializa
         return ChampMap.<K, V>empty().putAllTuples(entries);
     }
 
+    /**
+     * Returns an ChampMap containing {@code n} values of a given Function {@code f}
+     * over a range of integer values from 0 to {@code n - 1}.
+     *
+     * @param <K> The key type
+     * @param <V> The value type
+     * @param n   The number of elements in the ChampMap
+     * @param f   The Function computing element values
+     * @return An ChampMap consisting of elements {@code f(0),f(1), ..., f(n - 1)}
+     * @throws NullPointerException if {@code f} is null
+     */
+    @SuppressWarnings("unchecked")
+    public static <K, V> ChampMap<K, V> tabulate(int n, Function<? super Integer, ? extends Tuple2<? extends K, ? extends V>> f) {
+        Objects.requireNonNull(f, "f is null");
+        return ofEntries(Collections.tabulate(n, (Function<? super Integer, ? extends Tuple2<K, V>>) f));
+    }
+
+    static <K, V> java.util.AbstractMap.SimpleImmutableEntry<K, V> updateEntry(java.util.AbstractMap.SimpleImmutableEntry<K, V> oldv, java.util.AbstractMap.SimpleImmutableEntry<K, V> newv) {
+        return Objects.equals(oldv.getValue(), newv.getValue()) ? oldv : newv;
+    }
+
+    // FIXME This behavior is enforced by AbstractMapTest.shouldPutExistingKeyAndNonEqualValue().<br>
+    //     This behavior replaces the existing key with the new one if it has not the same identity.<br>
+    //     This behavior does not match the behavior of java.util.ChampMap.put().
+    //     This behavior violates the contract of the map: we do create a new instance of the map,
+    //     although it is equal to the previous instance.
+    static <K, V> java.util.AbstractMap.SimpleImmutableEntry<K, V> updateWithNewKey(java.util.AbstractMap.SimpleImmutableEntry<K, V> oldv, java.util.AbstractMap.SimpleImmutableEntry<K, V> newv) {
+        return Objects.equals(oldv.getValue(), newv.getValue())
+                && oldv.getKey() == newv.getKey()
+                ? oldv
+                : newv;
+    }
+
     @Override
     public <K2, V2> ChampMap<K2, V2> bimap(Function<? super K, ? extends K2> keyMapper, Function<? super V, ? extends V2> valueMapper) {
         Objects.requireNonNull(keyMapper, "keyMapper is null");
@@ -585,6 +614,12 @@ public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializa
     public boolean containsKey(K key) {
         return root.find(new java.util.AbstractMap.SimpleImmutableEntry<>(key, null), Objects.hashCode(key), 0,
                 ChampMap::keyEquals) != ChampTrie.Node.NO_DATA;
+    }
+
+    // We need this method to narrow the argument of `ofEntries`.
+    // If this method is static with type args <K, V>, the jdk fails to infer types at the call site.
+    private ChampMap<K, V> createFromEntries(Iterable<Tuple2<K, V>> tuples) {
+        return ChampMap.ofEntries(tuples);
     }
 
     @Override
@@ -623,35 +658,48 @@ public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializa
     }
 
     @Override
-    public ChampMap<K, V> filter(BiPredicate<? super K, ? super V> predicate) {
-        TransientHashMap<K, V> t = toTransient();
-        t.filterAll(e->predicate.test(e.getKey(),e.getValue()));
-        return t.root==this.root?this: t.toImmutable();
+    public boolean equals(final Object other) {
+        if (other == this) {
+            return true;
+        }
+        if (other == null) {
+            return false;
+        }
+        if (other instanceof ChampMap) {
+            ChampMap<?, ?> that = (ChampMap<?, ?>) other;
+            return size == that.size && root.equivalent(that.root);
+        } else {
+            return Collections.equals(this, other);
+        }
     }
 
+    @Override
+    public ChampMap<K, V> filter(BiPredicate<? super K, ? super V> predicate) {
+        TransientHashMap<K, V> t = toTransient();
+        t.filterAll(e -> predicate.test(e.getKey(), e.getValue()));
+        return t.root == this.root ? this : t.toImmutable();
+    }
 
     @Override
     public ChampMap<K, V> filter(Predicate<? super Tuple2<K, V>> predicate) {
         TransientHashMap<K, V> t = toTransient();
-        t.filterAll(e->predicate.test(new Tuple2<>(e.getKey(),e.getValue())));
-        return t.root==this.root?this: t.toImmutable();
+        t.filterAll(e -> predicate.test(new Tuple2<>(e.getKey(), e.getValue())));
+        return t.root == this.root ? this : t.toImmutable();
     }
-
 
     @Override
     public ChampMap<K, V> filterKeys(Predicate<? super K> predicate) {
         TransientHashMap<K, V> t = toTransient();
-        t.filterAll(e->predicate.test(e.getKey()));
-        return t.root==this.root?this: t.toImmutable();
+        t.filterAll(e -> predicate.test(e.getKey()));
+        return t.root == this.root ? this : t.toImmutable();
     }
 
     @Override
     public ChampMap<K, V> filterValues(Predicate<? super V> predicate) {
         TransientHashMap<K, V> t = toTransient();
-        t.filterAll(e->predicate.test(e.getValue()));
-        return t.root==this.root?this: t.toImmutable();
+        t.filterAll(e -> predicate.test(e.getValue()));
+        return t.root == this.root ? this : t.toImmutable();
     }
-
 
     @Override
     public <K2, V2> ChampMap<K2, V2> flatMap(BiFunction<? super K, ? super V, ? extends Iterable<Tuple2<K2, V2>>> mapper) {
@@ -686,6 +734,11 @@ public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializa
     @Override
     public io.vavr.collection.Iterator<ChampMap<K, V>> grouped(int size) {
         return Maps.grouped(this, this::createFromEntries, size);
+    }
+
+    @Override
+    public int hashCode() {
+        return Collections.hashUnordered(this);
     }
 
     @Override
@@ -793,7 +846,7 @@ public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializa
 
     @Override
     public ChampMap<K, V> merge(io.vavr.collection.Map<? extends K, ? extends V> that) {
-       return putAllTuples(that);
+        return putAllTuples(that);
     }
 
     @Override
@@ -854,34 +907,42 @@ public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializa
     }
 
     private ChampMap<K, V> putAllEntries(Iterable<? extends Map.Entry<? extends K, ? extends V>> c) {
-        TransientHashMap<K,V> t=toTransient();
+        TransientHashMap<K, V> t = toTransient();
         t.putAllEntries(c);
-        return t.root==this.root?this: t.toImmutable();
+        return t.root == this.root ? this : t.toImmutable();
     }
 
     @SuppressWarnings("unchecked")
     private ChampMap<K, V> putAllTuples(Iterable<? extends Tuple2<? extends K, ? extends V>> c) {
-        if (isEmpty()&& c instanceof ChampMap<?, ?>){
+        if (isEmpty() && c instanceof ChampMap<?, ?>) {
             ChampMap<?, ?> that = (ChampMap<?, ?>) c;
-            return (ChampMap<K, V>)that;
+            return (ChampMap<K, V>) that;
         }
-        TransientHashMap<K,V> t=toTransient();
+        TransientHashMap<K, V> t = toTransient();
         t.putAllTuples(c);
-        return t.root==this.root?this: t.toImmutable();
+        return t.root == this.root ? this : t.toImmutable();
     }
+
+    private Object readResolve() {
+        return isEmpty() ? EMPTY : this;
+    }
+
     public ChampMap<K, V> reject(Predicate<? super Tuple2<K, V>> predicate) {
         return (ChampMap) Maps.reject(this, this::createFromEntries, predicate);
     }
 
     public ChampMap<K, V> reject(BiPredicate<? super K, ? super V> predicate) {
-        return (ChampMap)  Maps.reject(this, this::createFromEntries, predicate);
+        return (ChampMap) Maps.reject(this, this::createFromEntries, predicate);
     }
+
     public ChampMap<K, V> rejectKeys(Predicate<? super K> predicate) {
-        return (ChampMap)  Maps.rejectKeys(this, this::createFromEntries, predicate);
+        return (ChampMap) Maps.rejectKeys(this, this::createFromEntries, predicate);
     }
+
     public ChampMap<K, V> rejectValues(Predicate<? super V> predicate) {
-        return (ChampMap)  Maps.rejectValues(this, this::createFromEntries, predicate);
+        return (ChampMap) Maps.rejectValues(this, this::createFromEntries, predicate);
     }
+
     @Override
     public ChampMap<K, V> remove(K key) {
         final int keyHash = Objects.hashCode(key);
@@ -903,9 +964,9 @@ public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializa
 
     @Override
     public ChampMap<K, V> removeAll(Iterable<? extends K> c) {
-        TransientHashMap<K,V> t=toTransient();
+        TransientHashMap<K, V> t = toTransient();
         t.removeAll(c);
-        return t.root==this.root?this: t.toImmutable();
+        return t.root == this.root ? this : t.toImmutable();
     }
 
     @Override
@@ -926,18 +987,13 @@ public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializa
     }
 
     @Override
-    public ChampMap<K, V> replaceAll(Tuple2<K, V> currentElement, Tuple2<K, V> newElement) {
-        return Maps.replaceAll(this, currentElement, newElement);
-    }
-
-    @Override
-    public ChampMap<K, V> replaceValue(K key, V value) {
-        return Maps.replaceValue(this, key, value);
-    }
-
-    @Override
     public ChampMap<K, V> replace(K key, V oldValue, V newValue) {
         return Maps.replace(this, key, oldValue, newValue);
+    }
+
+    @Override
+    public ChampMap<K, V> replaceAll(Tuple2<K, V> currentElement, Tuple2<K, V> newElement) {
+        return Maps.replaceAll(this, currentElement, newElement);
     }
 
     @Override
@@ -946,10 +1002,15 @@ public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializa
     }
 
     @Override
+    public ChampMap<K, V> replaceValue(K key, V value) {
+        return Maps.replaceValue(this, key, value);
+    }
+
+    @Override
     public ChampMap<K, V> retainAll(Iterable<? extends Tuple2<K, V>> elements) {
-        TransientHashMap<K,V> t=toTransient();
+        TransientHashMap<K, V> t = toTransient();
         t.retainAllTuples(elements);
-        return t.root==this.root?this: t.toImmutable();
+        return t.root == this.root ? this : t.toImmutable();
     }
 
     @Override
@@ -991,6 +1052,11 @@ public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializa
     }
 
     @Override
+    public String stringPrefix() {
+        return "ChampMap";
+    }
+
+    @Override
     public ChampMap<K, V> tail() {
         if (isEmpty()) {
             throw new UnsupportedOperationException("tail of empty ChampMap");
@@ -1028,7 +1094,12 @@ public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializa
         return toJavaMap(java.util.HashMap::new, t -> t);
     }
 
-    TransientHashMap<K,V> toTransient() {
+    @Override
+    public String toString() {
+        return mkString(stringPrefix() + "(", ", ", ")");
+    }
+
+    TransientHashMap<K, V> toTransient() {
         return new TransientHashMap<>(this);
     }
 
@@ -1047,78 +1118,7 @@ public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializa
                 Spliterator.SIZED | Spliterator.SUBSIZED | Spliterator.IMMUTABLE, size);
     }
 
-    @Override
-    public boolean equals(final Object other) {
-        if (other == this) {
-            return true;
-        }
-        if (other == null) {
-            return false;
-        }
-        if (other instanceof ChampMap) {
-            ChampMap<?, ?> that = (ChampMap<?, ?>) other;
-            return size == that.size &&root. equivalent(that.root);
-        } else {
-            return Collections.equals(this, other);
-        }
-    }
-
-    @Override
-    public int hashCode() {
-        return Collections.hashUnordered(this);
-    }
-
-    private Object readResolve() {
-        return isEmpty() ? EMPTY : this;
-    }
-
-    @Override
-    public String stringPrefix() {
-        return "ChampMap";
-    }
-
-    @Override
-    public String toString() {
-        return mkString(stringPrefix() + "(", ", ", ")");
-    }
-
-    // We need this method to narrow the argument of `ofEntries`.
-    // If this method is static with type args <K, V>, the jdk fails to infer types at the call site.
-    private ChampMap<K, V> createFromEntries(Iterable<Tuple2<K, V>> tuples) {
-        return ChampMap.ofEntries(tuples);
-    }
-
-    static <V, K> boolean keyEquals(java.util.AbstractMap.SimpleImmutableEntry<K, V> a, java.util.AbstractMap.SimpleImmutableEntry<K, V> b) {
-        return Objects.equals(a.getKey(), b.getKey());
-    }
-    static <V, K> int keyHash(Object e) {
-        return SALT ^ Objects.hashCode(e);
-    }
-    static <V, K> int entryKeyHash(java.util.AbstractMap.SimpleImmutableEntry<K, V> e) {
-        return SALT^Objects.hashCode(e.getKey());
-    }
-
-    static <V, K> boolean entryKeyEquals(java.util.AbstractMap.SimpleImmutableEntry<K, V> a, java.util.AbstractMap.SimpleImmutableEntry<K, V> b) {
-        return Objects.equals(a.getKey(), b.getKey());
-    }
-
-    // FIXME This behavior is enforced by AbstractMapTest.shouldPutExistingKeyAndNonEqualValue().<br>
-    //     This behavior replaces the existing key with the new one if it has not the same identity.<br>
-    //     This behavior does not match the behavior of java.util.ChampMap.put().
-    //     This behavior violates the contract of the map: we do create a new instance of the map,
-    //     although it is equal to the previous instance.
-    static <K, V> java.util.AbstractMap.SimpleImmutableEntry<K, V> updateWithNewKey(java.util.AbstractMap.SimpleImmutableEntry<K, V> oldv, java.util.AbstractMap.SimpleImmutableEntry<K, V> newv) {
-        return Objects.equals(oldv.getValue(), newv.getValue())
-                && oldv.getKey() == newv.getKey()
-                ? oldv
-                : newv;
-    }
-
-    static <K, V> java.util.AbstractMap.SimpleImmutableEntry<K, V> updateEntry(java.util.AbstractMap.SimpleImmutableEntry<K, V> oldv, java.util.AbstractMap.SimpleImmutableEntry<K, V> newv) {
-        return Objects.equals(oldv.getValue(), newv.getValue()) ? oldv : newv;
-    }
-
-        private Object writeReplace() throws ObjectStreamException {
+    private Object writeReplace() throws ObjectStreamException {
         return new SerializationProxy<>(this);
     }
 
@@ -1148,21 +1148,6 @@ public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializa
          */
         SerializationProxy(ChampMap<K, V> map) {
             this.map = map;
-        }
-
-        /**
-         * Write an object to a serialization stream.
-         *
-         * @param s An object serialization stream.
-         * @throws IOException If an error occurs writing to the stream.
-         */
-        private void writeObject(ObjectOutputStream s) throws IOException {
-            s.defaultWriteObject();
-            s.writeInt(map.size());
-            for (Tuple2<K, V> e : map) {
-                s.writeObject(e._1);
-                s.writeObject(e._2);
-            }
         }
 
         /**
@@ -1206,6 +1191,21 @@ public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializa
         private Object readResolve() {
             return map;
         }
+
+        /**
+         * Write an object to a serialization stream.
+         *
+         * @param s An object serialization stream.
+         * @throws IOException If an error occurs writing to the stream.
+         */
+        private void writeObject(ObjectOutputStream s) throws IOException {
+            s.defaultWriteObject();
+            s.writeInt(map.size());
+            for (Tuple2<K, V> e : map) {
+                s.writeObject(e._1);
+                s.writeObject(e._2);
+            }
+        }
     }
 
     /**
@@ -1223,6 +1223,26 @@ public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializa
 
         TransientHashMap() {
             this(empty());
+        }
+
+        @Override
+        void clear() {
+            root = emptyNode();
+            size = 0;
+            modCount++;
+        }
+
+        @SuppressWarnings("unchecked")
+        boolean filterAll(Predicate<Map.Entry<K, V>> predicate) {
+            ChampTrie.BulkChangeEvent bulkChange = new ChampTrie.BulkChangeEvent();
+            ChampTrie.BitmapIndexedNode<AbstractMap.SimpleImmutableEntry<K, V>> newRootNode = root.filterAll(makeOwner(), predicate, 0, bulkChange);
+            if (bulkChange.removed == 0) {
+                return false;
+            }
+            root = newRootNode;
+            size -= bulkChange.removed;
+            modCount++;
+            return true;
         }
 
         public V put(K key, V value) {
@@ -1274,7 +1294,6 @@ public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializa
             return details;
         }
 
-
         @SuppressWarnings("unchecked")
         ChampTrie.ChangeEvent<java.util.AbstractMap.SimpleImmutableEntry<K, V>> removeKey(K key) {
             int keyHash = keyHash(key);
@@ -1286,20 +1305,6 @@ public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializa
                 modCount++;
             }
             return details;
-        }
-
-        @Override
-        void clear() {
-            root = emptyNode();
-            size = 0;
-            modCount++;
-        }
-
-        public ChampMap<K, V> toImmutable() {
-            owner = null;
-            return isEmpty()
-                    ? empty()
-                    : new ChampMap<>(root, size);
         }
 
         @SuppressWarnings("unchecked")
@@ -1330,17 +1335,11 @@ public  class ChampMap<K, V>  implements io.vavr.collection.Map<K, V>, Serializa
             return super.retainAllTuples(c);
         }
 
-        @SuppressWarnings("unchecked")
-        boolean filterAll(Predicate<Map.Entry<K, V>> predicate) {
-            ChampTrie.BulkChangeEvent bulkChange = new ChampTrie.BulkChangeEvent();
-            ChampTrie.BitmapIndexedNode<AbstractMap.SimpleImmutableEntry<K, V>> newRootNode = root.filterAll(makeOwner(), predicate, 0, bulkChange);
-            if (bulkChange.removed == 0) {
-                return false;
-            }
-            root = newRootNode;
-            size -= bulkChange.removed;
-            modCount++;
-            return true;
+        public ChampMap<K, V> toImmutable() {
+            owner = null;
+            return isEmpty()
+                    ? empty()
+                    : new ChampMap<>(root, size);
         }
     }
 }

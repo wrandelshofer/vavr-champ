@@ -26,14 +26,14 @@
  */
 package ch.randelshofer.vavr.champ.euler;
 
-import io.vavr.Function1;
 import io.vavr.API;
+import io.vavr.Function1;
 import io.vavr.collection.List;
 import org.junit.jupiter.api.Test;
 
+import static ch.randelshofer.vavr.champ.euler.Utils.factorial;
 import static io.vavr.API.$;
 import static io.vavr.API.Case;
-import static ch.randelshofer.vavr.champ.euler.Utils.factorial;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -54,28 +54,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class Euler24Test {
 
-    @Test
-    public void shouldSolveProblem24() {
-        List.of("012", "021", "102", "120", "201", "210").zipWithIndex()
-                .forEach(p -> {
-                    assertThat(lexicographicPermutationNaive(List.of("1", "0", "2"), p._2 + 1)).isEqualTo(p._1);
-                    assertThat(lexicographicPermutation(List.of("1", "0", "2"), p._2 + 1)).isEqualTo(p._1);
-                });
-
-        assertThat(lexicographicPermutation(List.of("0", "1", "2", "3", "4", "5", "6", "7", "8", "9"), 1_000_000)).isEqualTo("2783915460");
-    }
-
-    /**
-     * Naïve version. Very readable, but not performant enough for calculating
-     * "the millionth lexicographic permutation of the digits 0, 1, 2, 3, 4, 5,
-     * 6, 7, 8 and 9" (takes about 40 seconds on an average laptop).
-     */
-    private static String lexicographicPermutationNaive(List<String> stringsToPermutate, int ordinal) {
-        return stringsToPermutate.permutations()
-                .map(List::mkString)
-                .sorted()
-                .get(ordinal - 1);
-    }
+    private static final Function1<Integer, Integer> memoizedFactorial = Function1.of((Integer i) -> factorial(i).intValue()).memoized();
 
     /**
      * More performant version that uses an algorithm that calculates the number
@@ -93,5 +72,26 @@ public class Euler24Test {
         );
     }
 
-    private static final Function1<Integer, Integer> memoizedFactorial = Function1.of((Integer i) -> factorial(i).intValue()).memoized();
+    /**
+     * Naïve version. Very readable, but not performant enough for calculating
+     * "the millionth lexicographic permutation of the digits 0, 1, 2, 3, 4, 5,
+     * 6, 7, 8 and 9" (takes about 40 seconds on an average laptop).
+     */
+    private static String lexicographicPermutationNaive(List<String> stringsToPermutate, int ordinal) {
+        return stringsToPermutate.permutations()
+                .map(List::mkString)
+                .sorted()
+                .get(ordinal - 1);
+    }
+
+    @Test
+    public void shouldSolveProblem24() {
+        List.of("012", "021", "102", "120", "201", "210").zipWithIndex()
+                .forEach(p -> {
+                    assertThat(lexicographicPermutationNaive(List.of("1", "0", "2"), p._2 + 1)).isEqualTo(p._1);
+                    assertThat(lexicographicPermutation(List.of("1", "0", "2"), p._2 + 1)).isEqualTo(p._1);
+                });
+
+        assertThat(lexicographicPermutation(List.of("0", "1", "2", "3", "4", "5", "6", "7", "8", "9"), 1_000_000)).isEqualTo("2783915460");
+    }
 }

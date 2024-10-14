@@ -66,18 +66,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class Euler26Test {
 
-    @Test
-    public void shouldSolveProblem26() {
-        assertThat(recurringCycleLengthForDivisionOf1(2)._2).isEqualTo(0);
-        assertThat(recurringCycleLengthForDivisionOf1(3)._2).isEqualTo(1);
-        assertThat(recurringCycleLengthForDivisionOf1(4)._2).isEqualTo(0);
-        assertThat(recurringCycleLengthForDivisionOf1(5)._2).isEqualTo(0);
-        assertThat(recurringCycleLengthForDivisionOf1(6)._2).isEqualTo(1);
-        assertThat(recurringCycleLengthForDivisionOf1(7)._2).isEqualTo(6);
-        assertThat(recurringCycleLengthForDivisionOf1(8)._2).isEqualTo(0);
-        assertThat(recurringCycleLengthForDivisionOf1(9)._2).isEqualTo(1);
-        assertThat(recurringCycleLengthForDivisionOf1(10)._2).isEqualTo(0);
-        assertThat(denominatorBelow1000WithTheLongetsRecurringCycleOfDecimalFractions()).isEqualTo(983);
+    private static Function1<Stream<Character>, Stream<String>> createCandidateCycles() {
+        return reversedDecimalFractionPart -> reversedDecimalFractionPart
+                .map(String::valueOf)
+                .scan("", String::concat)
+                .drop(1); // Drop the first empty string created by scan
     }
 
     private static int denominatorBelow1000WithTheLongetsRecurringCycleOfDecimalFractions() {
@@ -85,6 +78,12 @@ public class Euler26Test {
                 .map(Euler26Test::recurringCycleLengthForDivisionOf1)
                 .maxBy(Tuple2::_2)
                 .get()._1;
+    }
+
+    private static Function1<Stream<String>, Option<String>> findFirstRecurringCycle(String decimalFractionPart) {
+        return reversedCandidateCycles -> reversedCandidateCycles
+                .map(s -> CharSeq.of(s).reverse().mkString())
+                .find(candidate -> candidate.equals(decimalFractionPart.substring(decimalFractionPart.length() - (candidate.length() * 2), decimalFractionPart.length() - candidate.length())));
     }
 
     private static Tuple2<Integer, Integer> recurringCycleLengthForDivisionOf1(int divisor) {
@@ -110,6 +109,10 @@ public class Euler26Test {
                 .getOrElse(0);
     }
 
+    private static Function1<Stream<String>, Stream<String>> removeCandidatesLongerThanHalfTheFullString(String decimalFractionPart) {
+        return candidateCycles -> candidateCycles.filter(candidate -> decimalFractionPart.length() >= candidate.length() * 2);
+    }
+
     private static Function1<CharSeq, CharSeq> removeLeadingZeroAndDecimalPoint() {
         return seq -> seq.drop(2);
     }
@@ -125,20 +128,17 @@ public class Euler26Test {
                 .reverse();
     }
 
-    private static Function1<Stream<Character>, Stream<String>> createCandidateCycles() {
-        return reversedDecimalFractionPart -> reversedDecimalFractionPart
-                .map(String::valueOf)
-                .scan("", String::concat)
-                .drop(1); // Drop the first empty string created by scan
-    }
-
-    private static Function1<Stream<String>, Stream<String>> removeCandidatesLongerThanHalfTheFullString(String decimalFractionPart) {
-        return candidateCycles -> candidateCycles.filter(candidate -> decimalFractionPart.length() >= candidate.length() * 2);
-    }
-
-    private static Function1<Stream<String>, Option<String>> findFirstRecurringCycle(String decimalFractionPart) {
-        return reversedCandidateCycles -> reversedCandidateCycles
-                .map(s -> CharSeq.of(s).reverse().mkString())
-                .find(candidate -> candidate.equals(decimalFractionPart.substring(decimalFractionPart.length() - (candidate.length() * 2), decimalFractionPart.length() - candidate.length())));
+    @Test
+    public void shouldSolveProblem26() {
+        assertThat(recurringCycleLengthForDivisionOf1(2)._2).isEqualTo(0);
+        assertThat(recurringCycleLengthForDivisionOf1(3)._2).isEqualTo(1);
+        assertThat(recurringCycleLengthForDivisionOf1(4)._2).isEqualTo(0);
+        assertThat(recurringCycleLengthForDivisionOf1(5)._2).isEqualTo(0);
+        assertThat(recurringCycleLengthForDivisionOf1(6)._2).isEqualTo(1);
+        assertThat(recurringCycleLengthForDivisionOf1(7)._2).isEqualTo(6);
+        assertThat(recurringCycleLengthForDivisionOf1(8)._2).isEqualTo(0);
+        assertThat(recurringCycleLengthForDivisionOf1(9)._2).isEqualTo(1);
+        assertThat(recurringCycleLengthForDivisionOf1(10)._2).isEqualTo(0);
+        assertThat(denominatorBelow1000WithTheLongetsRecurringCycleOfDecimalFractions()).isEqualTo(983);
     }
 }

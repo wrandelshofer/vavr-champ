@@ -35,6 +35,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler29Test {
 
+    private static int cnt(int max) {
+        return Stream.rangeClosed(2, max)
+                .map(BigInteger::valueOf)
+                .flatMap(a -> Stream.rangeClosed(2, max).map(a::pow))
+                .distinct()
+                .length();
+    }
+
     /**
      * <strong>Problem 29: Distinct powers</strong>
      * <p>
@@ -57,13 +65,5 @@ public class Euler29Test {
     public void shouldSolveProblem29() {
         assertThat(cnt(5)).isEqualTo(15);
         assertThat(cnt(100)).isEqualTo(9183);
-    }
-
-    private static int cnt(int max) {
-        return Stream.rangeClosed(2, max)
-                .map(BigInteger::valueOf)
-                .flatMap(a -> Stream.rangeClosed(2, max).map(a::pow))
-                .distinct()
-                .length();
     }
 }

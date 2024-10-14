@@ -52,25 +52,25 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <li>A leap year occurs on any year evenly divisible by 4, but not on a century unless it is divisible by 400.</li>
  * </ul>
  * <p>How many Sundays fell on the first of the month during the twentieth century (1 Jan 1901 to 31 Dec 2000)?</p>
- *
+ * <p>
  * See also <a href="https://projecteuler.net/problem=19">projecteuler.net problem 19</a>.
  */
 public class Euler19Test {
-
-    @Test
-    public void shouldSolveProblem19() {
-        assertThat(findNumberOfFirstMonthDaysOnSunday(1901, 2000)).isEqualTo(171);
-    }
-
-    private static boolean isFirstDayOfMonthSunday(int year, Month month) {
-        return LocalDate.of(year, month, 1).getDayOfWeek() == DayOfWeek.SUNDAY;
-    }
 
     private static int findNumberOfFirstMonthDaysOnSunday(int startYear, int endYear) {
         return For(List.rangeClosed(startYear, endYear), List.of(Month.values()))
                 .yield(Tuple::of)
                 .filter(t -> isFirstDayOfMonthSunday(t._1, t._2))
                 .length();
+    }
+
+    private static boolean isFirstDayOfMonthSunday(int year, Month month) {
+        return LocalDate.of(year, month, 1).getDayOfWeek() == DayOfWeek.SUNDAY;
+    }
+
+    @Test
+    public void shouldSolveProblem19() {
+        assertThat(findNumberOfFirstMonthDaysOnSunday(1901, 2000)).isEqualTo(171);
     }
 
 }

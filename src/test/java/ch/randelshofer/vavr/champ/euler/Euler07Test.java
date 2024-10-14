@@ -33,6 +33,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler07Test {
 
+    private static final Array<Integer> PRIMES = Array.ofAll(PrimeNumbers.primes().take(10_001));
+
+    private static long prime(int index) {
+        return PRIMES.get(index - 1);
+    }
+
     /**
      * <strong>Problem 7: 10001st prime</strong>
      * <p>
@@ -51,12 +57,6 @@ public class Euler07Test {
         assertThat(prime(5)).isEqualTo(11);
         assertThat(prime(6)).isEqualTo(13);
         assertThat(prime(10_001)).isEqualTo(104_743);
-    }
-
-    private static final Array<Integer> PRIMES = Array.ofAll(PrimeNumbers.primes().take(10_001));
-
-    private static long prime(int index) {
-        return PRIMES.get(index - 1);
     }
 
 }

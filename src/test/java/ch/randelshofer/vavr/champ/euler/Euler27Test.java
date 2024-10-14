@@ -65,12 +65,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class Euler27Test {
 
-    @Test
-    public void shouldSolveProblem27() {
-        assertThat(numberOfConsecutivePrimesProducedByFormulaWithCoefficients(1, 41)).isEqualTo(40);
-        assertThat(numberOfConsecutivePrimesProducedByFormulaWithCoefficients(-79, 1601)).isEqualTo(80);
-
-        assertThat(productOfCoefficientsWithMostConsecutivePrimes(-999, 999)).isEqualTo(-59231);
+    private static int numberOfConsecutivePrimesProducedByFormulaWithCoefficients(int a, int b) {
+        return Iterator.from(0L)
+                .map(n -> (long) Math.pow(n, 2) + a * n + b)
+                .takeWhile(Utils.MEMOIZED_IS_PRIME::apply)
+                .length();
     }
 
     private static int productOfCoefficientsWithMostConsecutivePrimes(int coefficientsLowerBound, int coefficientsUpperBound) {
@@ -82,10 +81,11 @@ public class Euler27Test {
                 .apply((a, b, p) -> a * b);
     }
 
-    private static int numberOfConsecutivePrimesProducedByFormulaWithCoefficients(int a, int b) {
-        return Iterator.from(0L)
-                .map(n -> (long) Math.pow(n, 2) + a * n + b)
-                .takeWhile(Utils.MEMOIZED_IS_PRIME::apply)
-                .length();
+    @Test
+    public void shouldSolveProblem27() {
+        assertThat(numberOfConsecutivePrimesProducedByFormulaWithCoefficients(1, 41)).isEqualTo(40);
+        assertThat(numberOfConsecutivePrimesProducedByFormulaWithCoefficients(-79, 1601)).isEqualTo(80);
+
+        assertThat(productOfCoefficientsWithMostConsecutivePrimes(-999, 999)).isEqualTo(-59231);
     }
 }

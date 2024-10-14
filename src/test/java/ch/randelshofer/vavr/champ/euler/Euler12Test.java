@@ -34,6 +34,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler12Test {
 
+    private static long divisorCount(long number) {
+        return factors(number).length();
+    }
+
+    private static Stream<Long> triangleNumbers() {
+        return Stream.from(1L).scanLeft(0L, (a, l) -> a + l);
+    }
+
+    private static long valueOfFirstTriangleNumberWithMoreDivisorsThan(long divisorCount) {
+        return triangleNumbers()
+                .find(t -> divisorCount(t) > divisorCount)
+                .get();
+    }
+
     /**
      * <strong>Problem 12: Highly divisible triangular number</strong>
      * <p>
@@ -64,19 +78,5 @@ public class Euler12Test {
     public void shouldSolveProblem12() {
         assertThat(valueOfFirstTriangleNumberWithMoreDivisorsThan(5)).isEqualTo(28);
         assertThat(valueOfFirstTriangleNumberWithMoreDivisorsThan(500)).isEqualTo(76_576_500);
-    }
-
-    private static long valueOfFirstTriangleNumberWithMoreDivisorsThan(long divisorCount) {
-        return triangleNumbers()
-                .find(t -> divisorCount(t) > divisorCount)
-                .get();
-    }
-
-    private static Stream<Long> triangleNumbers() {
-        return Stream.from(1L).scanLeft(0L, (a, l) -> a + l);
-    }
-
-    private static long divisorCount(long number) {
-        return factors(number).length();
     }
 }

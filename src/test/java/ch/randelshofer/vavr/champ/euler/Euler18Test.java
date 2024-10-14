@@ -34,6 +34,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler18Test {
 
+    private static int solve(String fileName) {
+        return naive.apply(Euler67Test.loadTriangle(fileName), 0, 0);
+    }
+
     /**
      * <strong>Problem 18: Maximum path sum I</strong>
      * <p>
@@ -58,10 +62,6 @@ public class Euler18Test {
     public void shouldSolveProblem18() {
         assertThat(solve("small_triangle.txt")).isEqualTo(23);
         assertThat(solve("p018_triangle.txt")).isEqualTo(1074);
-    }
-
-    private static int solve(String fileName) {
-        return naive.apply(Euler67Test.loadTriangle(fileName), 0, 0);
     }
 
     private final static Function3<Vector<Vector<Integer>>, Integer, Integer, Integer> naive = Function3.of(

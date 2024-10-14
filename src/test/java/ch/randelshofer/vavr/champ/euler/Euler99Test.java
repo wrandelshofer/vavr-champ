@@ -35,6 +35,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler99Test {
 
+    private static long solve() {
+        return readLines(file("p099_base_exp.txt"))
+                .flatMap(s -> asList(s.split(",")))
+                .map(Integer::parseInt)
+                .grouped(2)
+                .map(t -> t.get(1) * Math.log(t.get(0)))
+                .zipWithIndex()
+                .reduce((t1, t2) -> t1._1 > t2._1 ? t1 : t2)
+                ._2 + 1;
+    }
+
     /**
      * <strong>Problem 99: Largest exponential</strong>
      * <p>
@@ -52,16 +63,5 @@ public class Euler99Test {
     @Test
     public void shouldSolveProblem99() {
         assertThat(solve()).isEqualTo(709);
-    }
-
-    private static long solve() {
-        return readLines(file("p099_base_exp.txt"))
-                .flatMap(s -> asList(s.split(",")))
-                .map(Integer::parseInt)
-                .grouped(2)
-                .map(t -> t.get(1) * Math.log(t.get(0)))
-                .zipWithIndex()
-                .reduce((t1, t2) -> t1._1 > t2._1 ? t1 : t2)
-                ._2 + 1;
     }
 }

@@ -43,17 +43,17 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class Euler01Test {
 
-    @Test
-    public void shouldSolveProblem1() {
-        assertThat(sumOfMultiplesOf3and5Below(10)).isEqualTo(23);
-        assertThat(sumOfMultiplesOf3and5Below(1000)).isEqualTo(233168);
+    private static boolean isMultipleOf3or5(int num) {
+        return num % 3 == 0 || num % 5 == 0;
     }
 
     private static int sumOfMultiplesOf3and5Below(int limit) {
         return List.range(1, limit).filter(Euler01Test::isMultipleOf3or5).sum().intValue();
     }
 
-    private static boolean isMultipleOf3or5(int num) {
-        return num % 3 == 0 || num % 5 == 0;
+    @Test
+    public void shouldSolveProblem1() {
+        assertThat(sumOfMultiplesOf3and5Below(10)).isEqualTo(23);
+        assertThat(sumOfMultiplesOf3and5Below(1000)).isEqualTo(233168);
     }
 }

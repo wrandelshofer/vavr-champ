@@ -41,9 +41,14 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class Euler36Test {
 
-    @Test
-    public void shouldSolveProblem36() {
-        assertThat(solve(1000000)).isEqualTo(872187);
+    private static boolean isDoubleBasePalindrome(int x) {
+        final CharSeq seq = CharSeq.of(Integer.toString(x));
+        final CharSeq rev = CharSeq.of(Integer.toBinaryString(x));
+        return isPalindrome(seq) && isPalindrome(rev);
+    }
+
+    private static boolean isPalindrome(CharSeq seq) {
+        return seq.dropWhile(c -> c == '0').equals(seq.reverse().dropWhile(c -> c == '0'));
     }
 
     private static int solve(int n) {
@@ -52,14 +57,9 @@ public class Euler36Test {
                 .sum().intValue();
     }
 
-    private static boolean isPalindrome(CharSeq seq) {
-        return seq.dropWhile(c -> c == '0').equals(seq.reverse().dropWhile(c -> c == '0'));
-    }
-
-    private static boolean isDoubleBasePalindrome(int x) {
-        final CharSeq seq = CharSeq.of(Integer.toString(x));
-        final CharSeq rev = CharSeq.of(Integer.toBinaryString(x));
-        return isPalindrome(seq) && isPalindrome(rev);
+    @Test
+    public void shouldSolveProblem36() {
+        assertThat(solve(1000000)).isEqualTo(872187);
     }
 
 }

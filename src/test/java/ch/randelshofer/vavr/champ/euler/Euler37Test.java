@@ -30,10 +30,33 @@ import io.vavr.collection.CharSeq;
 import io.vavr.collection.List;
 import org.junit.jupiter.api.Test;
 
-import static io.vavr.API.*;
+import static io.vavr.API.$;
+import static io.vavr.API.Case;
+import static io.vavr.API.Match;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler37Test {
+
+    private static boolean isTruncatablePrime(int prime) {
+        return Match(prime).of(
+                Case($(p -> p > 7), p -> {
+                    final CharSeq primeSeq = CharSeq.of(Integer.toString(p));
+                    return List.rangeClosed(1, primeSeq.length() - 1)
+                            .flatMap(i -> List.of(primeSeq.drop(i), primeSeq.dropRight(i)))
+                            .map(CharSeq::mkString)
+                            .map(Long::valueOf)
+                            .forAll(Utils.MEMOIZED_IS_PRIME::apply);
+                }),
+                Case($(), false)
+        );
+    }
+
+    private static int sumOfTheElevenTruncatablePrimes() {
+        return PrimeNumbers.primes()
+                .filter(Euler37Test::isTruncatablePrime)
+                .take(11)
+                .sum().intValue();
+    }
 
     /**
      * <strong>Problem 37 Truncatable primes</strong>
@@ -57,26 +80,5 @@ public class Euler37Test {
         List.of(2, 3, 5, 7).forEach(i -> assertThat(isTruncatablePrime(7)).isFalse());
 
         assertThat(sumOfTheElevenTruncatablePrimes()).isEqualTo(748_317);
-    }
-
-    private static int sumOfTheElevenTruncatablePrimes() {
-        return PrimeNumbers.primes()
-                .filter(Euler37Test::isTruncatablePrime)
-                .take(11)
-                .sum().intValue();
-    }
-
-    private static boolean isTruncatablePrime(int prime) {
-        return Match(prime).of(
-                Case($(p -> p > 7), p -> {
-                    final CharSeq primeSeq = CharSeq.of(Integer.toString(p));
-                    return List.rangeClosed(1, primeSeq.length() - 1)
-                            .flatMap(i -> List.of(primeSeq.drop(i), primeSeq.dropRight(i)))
-                            .map(CharSeq::mkString)
-                            .map(Long::valueOf)
-                            .forAll(Utils.MEMOIZED_IS_PRIME::apply);
-                }),
-                Case($(), false)
-        );
     }
 }

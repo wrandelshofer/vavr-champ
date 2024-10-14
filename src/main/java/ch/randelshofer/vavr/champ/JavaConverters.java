@@ -73,21 +73,31 @@ class JavaConverters {
     private static abstract class HasDelegate<C extends Traversable<?>> implements Serializable {
 
         private static final long serialVersionUID = 1L;
-
-        private C delegate;
         private final boolean mutable;
+        private C delegate;
 
         HasDelegate(C delegate, boolean mutable) {
             this.delegate = delegate;
             this.mutable = mutable;
         }
 
-        protected boolean isMutable() {
-            return mutable;
+        protected void ensureMutable() {
+            if (!mutable) {
+                throw new UnsupportedOperationException();
+            }
         }
 
         C getDelegate() {
             return delegate;
+        }
+
+        protected void setDelegate(Supplier<C> newDelegate) {
+            ensureMutable();
+            this.delegate = newDelegate.get();
+        }
+
+        protected boolean isMutable() {
+            return mutable;
         }
 
         protected boolean setDelegateAndCheckChanged(Supplier<C> delegate) {
@@ -99,17 +109,6 @@ class JavaConverters {
                 this.delegate = newDelegate;
             }
             return changed;
-        }
-
-        protected void setDelegate(Supplier<C> newDelegate) {
-            ensureMutable();
-            this.delegate = newDelegate.get();
-        }
-
-        protected void ensureMutable() {
-            if (!mutable) {
-                throw new UnsupportedOperationException();
-            }
         }
     }
 
@@ -173,8 +172,19 @@ class JavaConverters {
         }
 
         @Override
+        public boolean equals(Object o) {
+            return o == this || o instanceof List && Collections.areEqual(getDelegate(), (List<?>) o);
+        }
+
+        @Override
         public T get(int index) {
             return getDelegate().get(index);
+        }
+
+        @Override
+        public int hashCode() {
+            // DEV-NOTE: Ensures that hashCode calculation is stable, regardless of delegate.hashCode()
+            return Collections.hashOrdered(getDelegate());
         }
 
         @Override
@@ -244,6 +254,13 @@ class JavaConverters {
             return setDelegateAndGetPreviousElement(index, () -> (C) getDelegate().update(index, element));
         }
 
+        private T setDelegateAndGetPreviousElement(int index, Supplier<C> delegate) {
+            ensureMutable();
+            final T previousElement = getDelegate().get(index);
+            setDelegate(delegate);
+            return previousElement;
+        }
+
         @Override
         public int size() {
             return getDelegate().size();
@@ -258,6 +275,8 @@ class JavaConverters {
             }
             setDelegate(() -> (C) getDelegate().sorted(comparator));
         }
+
+        // -- Object.*
 
         @Override
         public List<T> subList(int fromIndex, int toIndex) {
@@ -279,8 +298,8 @@ class JavaConverters {
             if (array.length < length) {
                 final Class<? extends Object[]> newType = array.getClass();
                 target = (newType == Object[].class)
-                         ? (U[]) new Object[length]
-                         : (U[]) java.lang.reflect.Array.newInstance(newType.getComponentType(), length);
+                        ? (U[]) new Object[length]
+                        : (U[]) java.lang.reflect.Array.newInstance(newType.getComponentType(), length);
             } else {
                 if (array.length > length) {
                     array[length] = null;
@@ -294,31 +313,11 @@ class JavaConverters {
             return target;
         }
 
-        // -- Object.*
-
-        @Override
-        public boolean equals(Object o) {
-            return o == this || o instanceof List && Collections.areEqual(getDelegate(), (List<?>) o);
-        }
-
-        @Override
-        public int hashCode() {
-            // DEV-NOTE: Ensures that hashCode calculation is stable, regardless of delegate.hashCode()
-            return Collections.hashOrdered(getDelegate());
-        }
+        // -- private helpers
 
         @Override
         public String toString() {
             return getDelegate().mkString("[", ", ", "]");
-        }
-
-        // -- private helpers
-
-        private T setDelegateAndGetPreviousElement(int index, Supplier<C> delegate) {
-            ensureMutable();
-            final T previousElement = getDelegate().get(index);
-            setDelegate(delegate);
-            return previousElement;
         }
 
         // DEV-NOTE: Iterator is intentionally not Serializable
@@ -332,6 +331,29 @@ class JavaConverters {
             Iterator(ListView<T, C> list) {
                 this.list = list;
                 expectedSize = list.size();
+            }
+
+            final void checkForComodification() {
+                if (expectedSize != list.size()) {
+                    throw new ConcurrentModificationException();
+                }
+            }
+
+            @Override
+            public void forEachRemaining(Consumer<? super T> consumer) {
+                Objects.requireNonNull(consumer, "consumer is  null");
+                checkForComodification();
+                if (nextIndex >= list.size()) {
+                    return;
+                }
+                int index = nextIndex;
+                // DEV-NOTE: intentionally not using hasNext() and next() in order not to modify internal state
+                while (expectedSize == list.size() && index < expectedSize) {
+                    consumer.accept(list.get(index++));
+                }
+                nextIndex = index;
+                lastIndex = index - 1;
+                checkForComodification();
             }
 
             @Override
@@ -367,29 +389,6 @@ class JavaConverters {
                     throw new ConcurrentModificationException();
                 }
             }
-
-            @Override
-            public void forEachRemaining(Consumer<? super T> consumer) {
-                Objects.requireNonNull(consumer, "consumer is  null");
-                checkForComodification();
-                if (nextIndex >= list.size()) {
-                    return;
-                }
-                int index = nextIndex;
-                // DEV-NOTE: intentionally not using hasNext() and next() in order not to modify internal state
-                while (expectedSize == list.size() && index < expectedSize) {
-                    consumer.accept(list.get(index++));
-                }
-                nextIndex = index;
-                lastIndex = index - 1;
-                checkForComodification();
-            }
-
-            final void checkForComodification() {
-                if (expectedSize != list.size()) {
-                    throw new ConcurrentModificationException();
-                }
-            }
         }
 
         // DEV-NOTE: ListIterator is intentionally not Serializable
@@ -404,6 +403,22 @@ class JavaConverters {
             }
 
             @Override
+            public void add(T element) {
+                list.ensureMutable();
+                checkForComodification();
+                try {
+                    final int index = nextIndex;
+                    list.add(index, element);
+                    // DEV-NOTE: intentionally increasing nextIndex _after_ adding the element. This makes a difference in case of a concurrent modification.
+                    nextIndex = index + 1;
+                    lastIndex = -1;
+                    expectedSize = list.size();
+                } catch (IndexOutOfBoundsException ex) {
+                    throw new ConcurrentModificationException();
+                }
+            }
+
+            @Override
             public boolean hasPrevious() {
                 return nextIndex != 0;
             }
@@ -411,11 +426,6 @@ class JavaConverters {
             @Override
             public int nextIndex() {
                 return nextIndex;
-            }
-
-            @Override
-            public int previousIndex() {
-                return nextIndex - 1;
             }
 
             @Override
@@ -439,6 +449,11 @@ class JavaConverters {
             }
 
             @Override
+            public int previousIndex() {
+                return nextIndex - 1;
+            }
+
+            @Override
             public void set(T element) {
                 list.ensureMutable();
                 if (lastIndex < 0) {
@@ -448,22 +463,6 @@ class JavaConverters {
                 try {
                     list.set(lastIndex, element);
                 } catch (IndexOutOfBoundsException x) {
-                    throw new ConcurrentModificationException();
-                }
-            }
-
-            @Override
-            public void add(T element) {
-                list.ensureMutable();
-                checkForComodification();
-                try {
-                    final int index = nextIndex;
-                    list.add(index, element);
-                    // DEV-NOTE: intentionally increasing nextIndex _after_ adding the element. This makes a difference in case of a concurrent modification.
-                    nextIndex = index + 1;
-                    lastIndex = -1;
-                    expectedSize = list.size();
-                } catch (IndexOutOfBoundsException ex) {
                     throw new ConcurrentModificationException();
                 }
             }

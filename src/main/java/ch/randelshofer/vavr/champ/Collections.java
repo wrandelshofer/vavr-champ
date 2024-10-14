@@ -26,12 +26,11 @@
  */
 package ch.randelshofer.vavr.champ;
 
+import ch.randelshofer.vavr.champ.JavaConverters.ChangePolicy;
+import ch.randelshofer.vavr.champ.JavaConverters.ListView;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
 import io.vavr.collection.IndexedSeq;
-
-import ch.randelshofer.vavr.champ.JavaConverters.ChangePolicy;
-import ch.randelshofer.vavr.champ.JavaConverters.ListView;
 import io.vavr.collection.Multimap;
 import io.vavr.collection.Seq;
 import io.vavr.collection.Traversable;
@@ -198,25 +197,15 @@ final class Collections {
         return tabulate(n, ignored -> supplier.get());
     }
 
-    static <T, R> Collector<T, ArrayList<T>, R> toListAndThen(Function<ArrayList<T>, R> finisher) {
-        final Supplier<ArrayList<T>> supplier = ArrayList::new;
-        final BiConsumer<ArrayList<T>, T> accumulator = ArrayList::add;
-        final BinaryOperator<ArrayList<T>> combiner = (left, right) -> {
-            left.addAll(right);
-            return left;
-        };
-        return Collector.of(supplier, accumulator, combiner, finisher);
-    }
-
-    static <T> io.vavr.collection.Iterator<T> fillObject(int n, T element) {
-        return n <= 0 ? io.vavr.collection.Iterator.empty() : io.vavr.collection.Iterator.continually(element).take(n);
-    }
-
     static <C extends Traversable<T>, T> C fill(int n, Supplier<? extends T> s, C empty, Function<T[], C> of) {
         Objects.requireNonNull(s, "s is null");
         Objects.requireNonNull(empty, "empty is null");
         Objects.requireNonNull(of, "of is null");
         return tabulate(n, anything -> s.get(), empty, of);
+    }
+
+    static <T> io.vavr.collection.Iterator<T> fillObject(int n, T element) {
+        return n <= 0 ? io.vavr.collection.Iterator.empty() : io.vavr.collection.Iterator.continually(element).take(n);
     }
 
     static <C extends Traversable<T>, T> C fillObject(int n, T element, C empty, Function<T[], C> of) {
@@ -225,8 +214,7 @@ final class Collections {
         if (n <= 0) {
             return empty;
         } else {
-            @SuppressWarnings("unchecked")
-            final T[] elements = (T[]) new Object[n];
+            @SuppressWarnings("unchecked") final T[] elements = (T[]) new Object[n];
             Arrays.fill(elements, element);
             return of.apply(elements);
         }
@@ -245,7 +233,7 @@ final class Collections {
     @SuppressWarnings("unchecked")
     static <T, S extends Seq<T>> Seq<S> group(S source, Supplier<S> supplier) {
         return source.foldLeft(io.vavr.collection.HashMap.empty(), (io.vavr.collection.Map<T, S> map, T value) ->
-                map.put(value, (S) map.getOrElse(value, supplier.get()).append(value)))
+                        map.put(value, (S) map.getOrElse(value, supplier.get()).append(value)))
                 .map(entry -> entry._2);
     }
 
@@ -269,16 +257,6 @@ final class Collections {
         return results.entrySet();
     }
 
-    // hashes the elements respecting their order
-    static int hashOrdered(Iterable<?> iterable) {
-        return hash(iterable, (acc, hash) -> acc * 31 + hash);
-    }
-
-    // hashes the elements regardless of their order
-    static int hashUnordered(Iterable<?> iterable) {
-        return hash(iterable, Integer::sum);
-    }
-
     private static int hash(Iterable<?> iterable, IntBinaryOperator accumulator) {
         if (iterable == null) {
             return 0;
@@ -289,6 +267,16 @@ final class Collections {
             }
             return hashCode;
         }
+    }
+
+    // hashes the elements respecting their order
+    static int hashOrdered(Iterable<?> iterable) {
+        return hash(iterable, (acc, hash) -> acc * 31 + hash);
+    }
+
+    // hashes the elements regardless of their order
+    static int hashUnordered(Iterable<?> iterable) {
+        return hash(iterable, Integer::sum);
     }
 
     static Option<Integer> indexOption(int index) {
@@ -307,7 +295,7 @@ final class Collections {
                 (iterable instanceof Traversable && ((Traversable<?>) iterable).isTraversableAgain());
     }
 
-    static <T> T last(Traversable<T> source){
+    static <T> T last(Traversable<T> source) {
         if (source.isEmpty()) {
             throw new NoSuchElementException("last of empty " + source.stringPrefix());
         } else {
@@ -450,14 +438,6 @@ final class Collections {
         return scanLeft(reversedElements, zero, (u, t) -> operation.apply(t, u), us -> finisher.apply(reverseIterator(us)));
     }
 
-    static <T, U, R extends Seq<T>> R sortBy(Seq<? extends T> source, Comparator<? super U> comparator, Function<? super T, ? extends U> mapper, Collector<T, ?, R> collector) {
-        Objects.requireNonNull(comparator, "comparator is null");
-        Objects.requireNonNull(mapper, "mapper is null");
-        return source.toJavaStream()
-                .sorted((e1, e2) -> comparator.compare(mapper.apply(e1), mapper.apply(e2)))
-                .collect(collector);
-    }
-
     static <T, S extends Seq<T>> S shuffle(S source, Function<? super Iterable<T>, S> ofAll) {
         if (source.length() <= 1) {
             return source;
@@ -476,6 +456,14 @@ final class Collections {
         final List<T> list = source.toJavaList();
         java.util.Collections.shuffle(list, random);
         return ofAll.apply(list);
+    }
+
+    static <T, U, R extends Seq<T>> R sortBy(Seq<? extends T> source, Comparator<? super U> comparator, Function<? super T, ? extends U> mapper, Collector<T, ?, R> collector) {
+        Objects.requireNonNull(comparator, "comparator is null");
+        Objects.requireNonNull(mapper, "mapper is null");
+        return source.toJavaStream()
+                .sorted((e1, e2) -> comparator.compare(mapper.apply(e1), mapper.apply(e2)))
+                .collect(collector);
     }
 
     static void subSequenceRangeCheck(int beginIndex, int endIndex, int length) {
@@ -518,8 +506,7 @@ final class Collections {
         if (n <= 0) {
             return empty;
         } else {
-            @SuppressWarnings("unchecked")
-            final T[] elements = (T[]) new Object[n];
+            @SuppressWarnings("unchecked") final T[] elements = (T[]) new Object[n];
             for (int i = 0; i < n; i++) {
                 elements[i] = f.apply(i);
             }
@@ -553,6 +540,16 @@ final class Collections {
             }
         }
         return seq;
+    }
+
+    static <T, R> Collector<T, ArrayList<T>, R> toListAndThen(Function<ArrayList<T>, R> finisher) {
+        final Supplier<ArrayList<T>> supplier = ArrayList::new;
+        final BiConsumer<ArrayList<T>, T> accumulator = ArrayList::add;
+        final BinaryOperator<ArrayList<T>> combiner = (left, right) -> {
+            left.addAll(right);
+            return left;
+        };
+        return Collector.of(supplier, accumulator, combiner, finisher);
     }
 
     static <T, U extends Seq<T>, V extends Seq<U>> V transpose(V matrix, Function<Iterable<U>, V> rowFactory, Function<T[], U> columnFactory) {

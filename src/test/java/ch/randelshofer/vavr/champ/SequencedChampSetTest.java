@@ -31,6 +31,16 @@ public class SequencedChampSetTest extends AbstractSetTest {
     }
 
     @Override
+    protected <T> SequencedChampSet<T> fill(int n, Supplier<? extends T> s) {
+        return SequencedChampSet.fill(n, s);
+    }
+
+    @Override
+    protected int getPeekNonNilPerformingAnAction() {
+        return 1;
+    }
+
+    @Override
     protected <T> SequencedChampSet<T> of(T element) {
         return SequencedChampSet.of(element);
     }
@@ -43,23 +53,8 @@ public class SequencedChampSetTest extends AbstractSetTest {
     }
 
     @Override
-    protected boolean useIsEqualToInsteadOfIsSameAs() {
-        return false;
-    }
-
-    @Override
-    protected int getPeekNonNilPerformingAnAction() {
-        return 1;
-    }
-
-    @Override
     protected <T> SequencedChampSet<T> ofAll(Iterable<? extends T> elements) {
         return SequencedChampSet.ofAll(elements);
-    }
-
-    @Override
-    protected <T extends Comparable<? super T>> SequencedChampSet<T> ofJavaStream(java.util.stream.Stream<? extends T> javaStream) {
-        return SequencedChampSet.ofAll(javaStream);
     }
 
     @Override
@@ -103,17 +98,22 @@ public class SequencedChampSetTest extends AbstractSetTest {
     }
 
     @Override
-    protected <T> SequencedChampSet<T> tabulate(int n, Function<? super Integer, ? extends T> f) {
-        return SequencedChampSet.tabulate(n, f);
-    }
-
-    @Override
-    protected <T> SequencedChampSet<T> fill(int n, Supplier<? extends T> s) {
-        return SequencedChampSet.fill(n, s);
+    protected <T extends Comparable<? super T>> SequencedChampSet<T> ofJavaStream(java.util.stream.Stream<? extends T> javaStream) {
+        return SequencedChampSet.ofAll(javaStream);
     }
 
     @Override
     protected SequencedChampSet<Character> range(char from, char toExclusive) {
+        return SequencedChampSet.range(from, toExclusive);
+    }
+
+    @Override
+    protected SequencedChampSet<Integer> range(int from, int toExclusive) {
+        return SequencedChampSet.range(from, toExclusive);
+    }
+
+    @Override
+    protected SequencedChampSet<Long> range(long from, long toExclusive) {
         return SequencedChampSet.range(from, toExclusive);
     }
 
@@ -128,18 +128,8 @@ public class SequencedChampSetTest extends AbstractSetTest {
     }
 
     @Override
-    protected SequencedChampSet<Integer> range(int from, int toExclusive) {
-        return SequencedChampSet.range(from, toExclusive);
-    }
-
-    @Override
     protected SequencedChampSet<Integer> rangeBy(int from, int toExclusive, int step) {
         return SequencedChampSet.rangeBy(from, toExclusive, step);
-    }
-
-    @Override
-    protected SequencedChampSet<Long> range(long from, long toExclusive) {
-        return SequencedChampSet.range(from, toExclusive);
     }
 
     @Override
@@ -149,6 +139,16 @@ public class SequencedChampSetTest extends AbstractSetTest {
 
     @Override
     protected SequencedChampSet<Character> rangeClosed(char from, char toInclusive) {
+        return SequencedChampSet.rangeClosed(from, toInclusive);
+    }
+
+    @Override
+    protected SequencedChampSet<Integer> rangeClosed(int from, int toInclusive) {
+        return SequencedChampSet.rangeClosed(from, toInclusive);
+    }
+
+    @Override
+    protected SequencedChampSet<Long> rangeClosed(long from, long toInclusive) {
         return SequencedChampSet.rangeClosed(from, toInclusive);
     }
 
@@ -163,18 +163,8 @@ public class SequencedChampSetTest extends AbstractSetTest {
     }
 
     @Override
-    protected SequencedChampSet<Integer> rangeClosed(int from, int toInclusive) {
-        return SequencedChampSet.rangeClosed(from, toInclusive);
-    }
-
-    @Override
     protected SequencedChampSet<Integer> rangeClosedBy(int from, int toInclusive, int step) {
         return SequencedChampSet.rangeClosedBy(from, toInclusive, step);
-    }
-
-    @Override
-    protected SequencedChampSet<Long> rangeClosed(long from, long toInclusive) {
-        return SequencedChampSet.rangeClosed(from, toInclusive);
     }
 
     @Override
@@ -183,12 +173,15 @@ public class SequencedChampSetTest extends AbstractSetTest {
     }
 
     @Test
-    public void shouldKeepOrder() {
-        final List<Integer> actual = SequencedChampSet.<Integer> empty().add(3).add(2).add(1).toList();
-        assertThat(actual).isEqualTo(List.of(3, 2, 1));
+    public void shouldHaveOrderedSpliterator() {
+        assertThat(of(1, 2, 3).spliterator().hasCharacteristics(Spliterator.ORDERED)).isTrue();
     }
 
-    // -- static narrow
+    @Test
+    public void shouldKeepOrder() {
+        final List<Integer> actual = SequencedChampSet.<Integer>empty().add(3).add(2).add(1).toList();
+        assertThat(actual).isEqualTo(List.of(3, 2, 1));
+    }
 
     @Test
     public void shouldNarrowLinkedHashSet() {
@@ -198,14 +191,14 @@ public class SequencedChampSetTest extends AbstractSetTest {
         assertThat(actual).isEqualTo(3);
     }
 
-    // -- replace
+    // -- static narrow
 
     @Test
-    public void shouldReturnSameInstanceIfReplacingNonExistingElement() {
-        final Set<Integer> set = SequencedChampSet.of(1, 2, 3);
-        final Set<Integer> actual = set.replace(4, 0);
-        assertThat(actual).isSameAs(set);
+    public void shouldNotHaveSortedSpliterator() {
+        assertThat(of(1, 2, 3).spliterator().hasCharacteristics(Spliterator.SORTED)).isFalse();
     }
+
+    // -- replace
 
     @Test
     public void shouldPreserveOrderWhenReplacingExistingElement() {
@@ -226,6 +219,13 @@ public class SequencedChampSetTest extends AbstractSetTest {
     }
 
     @Test
+    public void shouldReturnSameInstanceIfReplacingNonExistingElement() {
+        final Set<Integer> set = SequencedChampSet.of(1, 2, 3);
+        final Set<Integer> actual = set.replace(4, 0);
+        assertThat(actual).isSameAs(set);
+    }
+
+    @Test
     public void shouldReturnSameInstanceWhenReplacingExistingElementWithIdentity() {
         final Set<Integer> set = SequencedChampSet.of(1, 2, 3);
         final Set<Integer> actual = set.replace(2, 2);
@@ -235,37 +235,37 @@ public class SequencedChampSetTest extends AbstractSetTest {
     // -- transform
 
     @Test
-    public void shouldTransform() {
-        final String transformed = of(42).transform(v -> String.valueOf(v.get()));
-        assertThat(transformed).isEqualTo("42");
-    }
-
-    // -- toLinkedSet
-
-    @Test
-@Disabled("WR this does not work because our instance is different from the one in io.vavr")
+    @Disabled("WR this does not work because our instance is different from the one in io.vavr")
     public void shouldReturnSelfOnConvertToLinkedSet() {
         final SequencedChampSet<Integer> value = of(1, 2, 3);
         assertThat(value.toLinkedSet()).isSameAs(value);
     }
 
-    // -- spliterator
-
-    @Test
-    public void shouldNotHaveSortedSpliterator() {
-        assertThat(of(1, 2, 3).spliterator().hasCharacteristics(Spliterator.SORTED)).isFalse();
-    }
-
-    @Test
-    public void shouldHaveOrderedSpliterator() {
-        assertThat(of(1, 2, 3).spliterator().hasCharacteristics(Spliterator.ORDERED)).isTrue();
-    }
-
-    // -- isSequential()
+    // -- toLinkedSet
 
     @Test
     public void shouldReturnTrueWhenIsSequentialCalled() {
         assertThat(of(1, 2, 3).isSequential()).isTrue();
+    }
+
+    // -- spliterator
+
+    @Test
+    public void shouldTransform() {
+        final String transformed = of(42).transform(v -> String.valueOf(v.get()));
+        assertThat(transformed).isEqualTo("42");
+    }
+
+    @Override
+    protected <T> SequencedChampSet<T> tabulate(int n, Function<? super Integer, ? extends T> f) {
+        return SequencedChampSet.tabulate(n, f);
+    }
+
+    // -- isSequential()
+
+    @Override
+    protected boolean useIsEqualToInsteadOfIsSameAs() {
+        return false;
     }
 
 }

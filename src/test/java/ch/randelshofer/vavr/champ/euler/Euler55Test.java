@@ -26,8 +26,8 @@
  */
 package ch.randelshofer.vavr.champ.euler;
 
-import io.vavr.collection.Stream;
 import io.vavr.collection.List;
+import io.vavr.collection.Stream;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
@@ -35,6 +35,27 @@ import java.math.BigInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler55Test {
+
+    private static boolean isLychrel(int n) {
+        return Stream.iterate(String.valueOf(n), Euler55Test::next)
+                .tail()  // Surprisingly, there are palindromic numbers that are themselves Lychrel numbers
+                .take(50)
+                .find(Utils::isPalindrome)
+                .isEmpty();
+    }
+
+    private static String next(String s) {
+        return List.of(s, Utils.reverse(s))
+                .map(BigInteger::new)
+                .reduce(BigInteger::add)
+                .toString();
+    }
+
+    private static int solve() {
+        return Stream.range(1, 10_000)
+                .filter(Euler55Test::isLychrel)
+                .length();
+    }
 
     /**
      * <strong>Problem 55: Lychrel numbers</strong>
@@ -68,26 +89,5 @@ public class Euler55Test {
     @Test
     public void shouldSolveProblem55() {
         assertThat(solve()).isEqualTo(249);
-    }
-
-    private static int solve() {
-        return Stream.range(1, 10_000)
-                .filter(Euler55Test::isLychrel)
-                .length();
-    }
-
-    private static boolean isLychrel(int n) {
-        return Stream.iterate(String.valueOf(n), Euler55Test::next)
-                .tail()  // Surprisingly, there are palindromic numbers that are themselves Lychrel numbers
-                .take(50)
-                .find(Utils::isPalindrome)
-                .isEmpty();
-    }
-
-    private static String next(String s) {
-        return List.of(s, Utils.reverse(s))
-                .map(BigInteger::new)
-                .reduce(BigInteger::add)
-                .toString();
     }
 }

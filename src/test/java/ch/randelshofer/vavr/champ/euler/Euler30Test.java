@@ -44,7 +44,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 8208 = 8^4 + 2^4 + 0^4 + 8^4
  * 9474 = 9^4 + 4^4 + 7^4 + 4^4
  * </pre>
- *
+ * <p>
  * As 1 = 1^4 is not a sum it is not included.
  * <p>
  * The sum of these numbers is 1634 + 8208 + 9474 = 19316.
@@ -58,10 +58,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class Euler30Test {
 
-    @Test
-    public void shouldSolveProblem26() {
-        assertThat(sumOfAllTheNumbersThatCanBeWrittenAsTheSumOfPowersOfTheirDigits(4)).isEqualTo(19316);
-        assertThat(sumOfAllTheNumbersThatCanBeWrittenAsTheSumOfPowersOfTheirDigits(5)).isEqualTo(443_839);
+    private static long maximalSumForPowers(int powers) {
+        return Stream.from(1)
+                .map(i -> Tuple.of((long) Math.pow(10, i) - 1, List.fill(i, () -> Math.pow(9, powers)).sum().longValue()))
+                .find(t -> t._1 > t._2)
+                .map(t -> t._1).get();
     }
 
     private static long sumOfAllTheNumbersThatCanBeWrittenAsTheSumOfPowersOfTheirDigits(int powers) {
@@ -70,17 +71,16 @@ public class Euler30Test {
                 .sum().longValue();
     }
 
-    private static long maximalSumForPowers(int powers) {
-        return Stream.from(1)
-                .map(i -> Tuple.of((long) Math.pow(10, i) - 1, List.fill(i, () -> Math.pow(9, powers)).sum().longValue()))
-                .find(t -> t._1 > t._2)
-                .map(t -> t._1).get();
-    }
-
     private static long sumOfPowersOfDigits(int powers, long num) {
         return CharSeq.of(Long.toString(num))
                 .map(c -> Character.digit(c, 10))
                 .map(d -> (long) Math.pow(d, powers))
                 .sum().longValue();
+    }
+
+    @Test
+    public void shouldSolveProblem26() {
+        assertThat(sumOfAllTheNumbersThatCanBeWrittenAsTheSumOfPowersOfTheirDigits(4)).isEqualTo(19316);
+        assertThat(sumOfAllTheNumbersThatCanBeWrittenAsTheSumOfPowersOfTheirDigits(5)).isEqualTo(443_839);
     }
 }

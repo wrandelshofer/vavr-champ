@@ -83,7 +83,7 @@ final class Maps {
     }
 
     static <K, V, M extends Map<K, V>> M distinctBy(M map, OfEntries<K, V, M> ofEntries,
-            Comparator<? super Tuple2<K, V>> comparator) {
+                                                    Comparator<? super Tuple2<K, V>> comparator) {
         Objects.requireNonNull(comparator, "comparator is null");
         return ofEntries.apply(map.iterator().distinctBy(comparator));
     }
@@ -105,7 +105,7 @@ final class Maps {
     }
 
     static <K, V, M extends Map<K, V>> M dropRight(M map, OfEntries<K, V, M> ofEntries, Supplier<M> emptySupplier,
-            int n) {
+                                                   int n) {
         if (n <= 0) {
             return map;
         } else if (n >= map.size()) {
@@ -116,44 +116,68 @@ final class Maps {
     }
 
     static <K, V, M extends Map<K, V>> M dropUntil(M map, OfEntries<K, V, M> ofEntries,
-            Predicate<? super Tuple2<K, V>> predicate) {
+                                                   Predicate<? super Tuple2<K, V>> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         return dropWhile(map, ofEntries, predicate.negate());
     }
 
     static <K, V, M extends Map<K, V>> M dropWhile(M map, OfEntries<K, V, M> ofEntries,
-            Predicate<? super Tuple2<K, V>> predicate) {
+                                                   Predicate<? super Tuple2<K, V>> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         return ofEntries.apply(map.iterator().dropWhile(predicate));
     }
 
 
     static <K, V, M extends Map<K, V>> M filter(M map, OfEntries<K, V, M> ofEntries,
-            BiPredicate<? super K, ? super V> predicate) {
+                                                BiPredicate<? super K, ? super V> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         return filter(map, ofEntries, t -> predicate.test(t._1, t._2));
     }
 
     static <K, V, M extends Map<K, V>> M filter(M map, OfEntries<K, V, M> ofEntries,
-            Predicate<? super Tuple2<K, V>> predicate) {
+                                                Predicate<? super Tuple2<K, V>> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         return ofEntries.apply(map.iterator().filter(predicate));
     }
 
     static <K, V, M extends Map<K, V>> M filterKeys(M map, OfEntries<K, V, M> ofEntries,
-            Predicate<? super K> predicate) {
+                                                    Predicate<? super K> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         return filter(map, ofEntries, t -> predicate.test(t._1));
     }
 
+    static <K, V, M extends Map<K, V>> M filterNot(M map, OfEntries<K, V, M> ofEntries,
+                                                   Predicate<? super Tuple2<K, V>> predicate) {
+        Objects.requireNonNull(predicate, "predicate is null");
+        return filter(map, ofEntries, predicate.negate());
+    }
+
+    static <K, V, M extends Map<K, V>> M filterNot(M map, OfEntries<K, V, M> ofEntries,
+                                                   BiPredicate<? super K, ? super V> predicate) {
+        Objects.requireNonNull(predicate, "predicate is null");
+        return filter(map, ofEntries, predicate.negate());
+    }
+
+    static <K, V, M extends Map<K, V>> M filterNotKeys(M map, OfEntries<K, V, M> ofEntries,
+                                                       Predicate<? super K> predicate) {
+        Objects.requireNonNull(predicate, "predicate is null");
+        return filterKeys(map, ofEntries, predicate.negate());
+    }
+
+    static <K, V, M extends Map<K, V>> M filterNotValues(M map, OfEntries<K, V, M> ofEntries,
+                                                         Predicate<? super V> predicate) {
+        Objects.requireNonNull(predicate, "predicate is null");
+        return filterValues(map, ofEntries, predicate.negate());
+    }
+
     static <K, V, M extends Map<K, V>> M filterValues(M map, OfEntries<K, V, M> ofEntries,
-            Predicate<? super V> predicate) {
+                                                      Predicate<? super V> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         return filter(map, ofEntries, t -> predicate.test(t._2));
     }
 
     static <K, V, C, M extends Map<K, V>> Map<C, M> groupBy(M map, OfEntries<K, V, M> ofEntries,
-            Function<? super Tuple2<K, V>, ? extends C> classifier) {
+                                                            Function<? super Tuple2<K, V>, ? extends C> classifier) {
         return Collections.groupBy(map, classifier, ofEntries);
     }
 
@@ -167,7 +191,7 @@ final class Maps {
     }
 
     static <K, V, M extends Map<K, V>> M merge(M map, OfEntries<K, V, M> ofEntries,
-            Map<? extends K, ? extends V> that) {
+                                               Map<? extends K, ? extends V> that) {
         Objects.requireNonNull(that, "that is null");
         if (map.isEmpty()) {
             return ofEntries.apply(Map.narrow(that));
@@ -200,8 +224,8 @@ final class Maps {
 
     @SuppressWarnings("unchecked")
     static <T, K, V, M extends Map<K, V>> M ofStream(M map, java.util.stream.Stream<? extends T> stream,
-            Function<? super T, ? extends K> keyMapper,
-            Function<? super T, ? extends V> valueMapper) {
+                                                     Function<? super T, ? extends K> keyMapper,
+                                                     Function<? super T, ? extends V> valueMapper) {
         Objects.requireNonNull(stream, "stream is null");
         Objects.requireNonNull(keyMapper, "keyMapper is null");
         Objects.requireNonNull(valueMapper, "valueMapper is null");
@@ -210,14 +234,14 @@ final class Maps {
 
     @SuppressWarnings("unchecked")
     static <T, K, V, M extends Map<K, V>> M ofStream(M map, java.util.stream.Stream<? extends T> stream,
-            Function<? super T, Tuple2<? extends K, ? extends V>> entryMapper) {
+                                                     Function<? super T, Tuple2<? extends K, ? extends V>> entryMapper) {
         Objects.requireNonNull(stream, "stream is null");
         Objects.requireNonNull(entryMapper, "entryMapper is null");
         return Stream.ofAll(stream).foldLeft(map, (m, el) -> (M) m.put(entryMapper.apply(el)));
     }
 
     static <K, V, M extends Map<K, V>> Tuple2<M, M> partition(M map, OfEntries<K, V, M> ofEntries,
-            Predicate<? super Tuple2<K, V>> predicate) {
+                                                              Predicate<? super Tuple2<K, V>> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         final java.util.List<Tuple2<K, V>> left = new java.util.ArrayList<>();
         final java.util.List<Tuple2<K, V>> right = new java.util.ArrayList<>();
@@ -237,7 +261,7 @@ final class Maps {
 
     @SuppressWarnings("unchecked")
     static <K, V, U extends V, M extends Map<K, V>> M put(M map, K key, U value,
-            BiFunction<? super V, ? super U, ? extends V> merge) {
+                                                          BiFunction<? super V, ? super U, ? extends V> merge) {
         Objects.requireNonNull(merge, "the merge function is null");
         final Option<V> currentValue = map.get(key);
         if (currentValue.isEmpty()) {
@@ -252,27 +276,9 @@ final class Maps {
         Objects.requireNonNull(entry, "entry is null");
         return (M) map.put(entry._1, entry._2);
     }
-    static <K, V, M extends Map<K, V>> M reject(M map, Maps.OfEntries<K, V, M> ofEntries, Predicate<? super Tuple2<K, V>> predicate) {
-        Objects.requireNonNull(predicate, "predicate is null");
-        return filter(map, ofEntries, predicate.negate());
-    }
 
-
-    static <K, V, M extends Map<K, V>> M reject(M map, Maps.OfEntries<K, V, M> ofEntries, BiPredicate<? super K, ? super V> predicate) {
-        Objects.requireNonNull(predicate, "predicate is null");
-        return filter(map, ofEntries, predicate.negate());
-    }
-    static <K, V, M extends Map<K, V>> M rejectKeys(M map,  Maps.OfEntries<K, V, M> ofEntries, Predicate<? super K> predicate) {
-        Objects.requireNonNull(predicate, "predicate is null");
-        return filterKeys(map, ofEntries, predicate.negate());
-    }
-
-    static <K, V, M extends Map<K, V>> M rejectValues(M map,  Maps.OfEntries<K, V, M> ofEntries, Predicate<? super V> predicate) {
-        Objects.requireNonNull(predicate, "predicate is null");
-        return filterValues(map, ofEntries, predicate.negate());
-    }
     static <K, V, U extends V, M extends Map<K, V>> M put(M map, Tuple2<? extends K, U> entry,
-            BiFunction<? super V, ? super U, ? extends V> merge) {
+                                                          BiFunction<? super V, ? super U, ? extends V> merge) {
         Objects.requireNonNull(merge, "the merge function is null");
         final Option<V> currentValue = map.get(entry._1);
         if (currentValue.isEmpty()) {
@@ -282,26 +288,22 @@ final class Maps {
         }
     }
 
-    static <K, V, M extends Map<K, V>> M filterNot(M map, OfEntries<K, V, M> ofEntries,
-                                                Predicate<? super Tuple2<K, V>> predicate) {
+    static <K, V, M extends Map<K, V>> M reject(M map, Maps.OfEntries<K, V, M> ofEntries, Predicate<? super Tuple2<K, V>> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         return filter(map, ofEntries, predicate.negate());
     }
 
-    static <K, V, M extends Map<K, V>> M filterNot(M map, OfEntries<K, V, M> ofEntries,
-                                                BiPredicate<? super K, ? super V> predicate) {
+    static <K, V, M extends Map<K, V>> M reject(M map, Maps.OfEntries<K, V, M> ofEntries, BiPredicate<? super K, ? super V> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         return filter(map, ofEntries, predicate.negate());
     }
 
-    static <K, V, M extends Map<K, V>> M filterNotKeys(M map, OfEntries<K, V, M> ofEntries,
-                                                    Predicate<? super K> predicate) {
+    static <K, V, M extends Map<K, V>> M rejectKeys(M map, Maps.OfEntries<K, V, M> ofEntries, Predicate<? super K> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         return filterKeys(map, ofEntries, predicate.negate());
     }
 
-    static <K, V, M extends Map<K, V>> M filterNotValues(M map, OfEntries<K, V, M> ofEntries,
-                                                      Predicate<? super V> predicate) {
+    static <K, V, M extends Map<K, V>> M rejectValues(M map, Maps.OfEntries<K, V, M> ofEntries, Predicate<? super V> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         return filterValues(map, ofEntries, predicate.negate());
     }
@@ -334,13 +336,13 @@ final class Maps {
 
     @SuppressWarnings("unchecked")
     static <K, V, M extends Map<K, V>> M scan(M map, Tuple2<K, V> zero,
-            BiFunction<? super Tuple2<K, V>, ? super Tuple2<K, V>, ? extends Tuple2<K, V>> operation,
-            Function<Iterator<Tuple2<K, V>>, Traversable<Tuple2<K, V>>> finisher) {
+                                              BiFunction<? super Tuple2<K, V>, ? super Tuple2<K, V>, ? extends Tuple2<K, V>> operation,
+                                              Function<Iterator<Tuple2<K, V>>, Traversable<Tuple2<K, V>>> finisher) {
         return (M) Collections.scanLeft(map, zero, operation, finisher);
     }
 
     static <K, V, M extends Map<K, V>> Iterator<M> slideBy(M map, OfEntries<K, V, M> ofEntries,
-            Function<? super Tuple2<K, V>, ?> classifier) {
+                                                           Function<? super Tuple2<K, V>, ?> classifier) {
         return map.iterator().slideBy(classifier).map(ofEntries);
     }
 
@@ -353,7 +355,7 @@ final class Maps {
     }
 
     static <K, V, M extends Map<K, V>> Tuple2<M, M> span(M map, OfEntries<K, V, M> ofEntries,
-            Predicate<? super Tuple2<K, V>> predicate) {
+                                                         Predicate<? super Tuple2<K, V>> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         final Tuple2<Iterator<Tuple2<K, V>>, Iterator<Tuple2<K, V>>> t = map.iterator().span(predicate);
         return Tuple.of(ofEntries.apply(t._1), ofEntries.apply(t._2));
@@ -381,13 +383,13 @@ final class Maps {
     }
 
     static <K, V, M extends Map<K, V>> M takeUntil(M map, OfEntries<K, V, M> ofEntries,
-            Predicate<? super Tuple2<K, V>> predicate) {
+                                                   Predicate<? super Tuple2<K, V>> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         return takeWhile(map, ofEntries, predicate.negate());
     }
 
     static <K, V, M extends Map<K, V>> M takeWhile(M map, OfEntries<K, V, M> ofEntries,
-            Predicate<? super Tuple2<K, V>> predicate) {
+                                                   Predicate<? super Tuple2<K, V>> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         final M taken = ofEntries.apply(map.iterator().takeWhile(predicate));
         return taken.size() == map.size() ? map : taken;

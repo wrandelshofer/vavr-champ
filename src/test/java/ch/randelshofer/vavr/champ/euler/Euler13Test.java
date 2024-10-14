@@ -36,6 +36,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler13Test {
 
+    private static String solve() {
+        return readLines(file("p013_numbers.txt"))
+                .map(BigInteger::new)
+                .fold(BigInteger.ZERO, BigInteger::add)
+                .toString().substring(0, 10);
+    }
+
     /**
      * <strong>Problem 13: Large sum</strong>
      * <p>
@@ -46,12 +53,5 @@ public class Euler13Test {
     @Test
     public void shouldSolveProblem13() {
         assertThat(solve()).isEqualTo("5537376230");
-    }
-
-    private static String solve() {
-        return readLines(file("p013_numbers.txt"))
-                .map(BigInteger::new)
-                .fold(BigInteger.ZERO, BigInteger::add)
-                .toString().substring(0, 10);
     }
 }

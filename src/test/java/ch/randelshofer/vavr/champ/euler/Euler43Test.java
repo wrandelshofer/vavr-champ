@@ -27,14 +27,39 @@
 package ch.randelshofer.vavr.champ.euler;
 
 import io.vavr.collection.CharSeq;
-import io.vavr.collection.Seq;
 import io.vavr.collection.List;
+import io.vavr.collection.Seq;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler43Test {
+
+    private static Seq<Long> tenDigitPandigitalsWithProperty() {
+        final CharSeq ALL_DIGITS = CharSeq.of("0123456789");
+        final List<Integer> DIVISORS = List.of(2, 3, 5, 7, 11, 13, 17);
+
+        return ALL_DIGITS
+                .combinations(2)
+                .flatMap(CharSeq::permutations)
+                .flatMap(firstTwoDigits -> DIVISORS
+                        .foldLeft(List.of(firstTwoDigits), (accumulator, divisor) -> accumulator
+                                .flatMap(digitsSoFar -> ALL_DIGITS
+                                        .removeAll(digitsSoFar)
+                                        .map(nextDigit -> digitsSoFar.append(nextDigit))
+                                )
+                                .filter(digitsToTest -> digitsToTest.takeRight(3).parseInt() % divisor == 0)
+                        )
+                )
+                .map(tailDigitsWithProperty -> tailDigitsWithProperty
+                        .prepend(ALL_DIGITS
+                                .removeAll(tailDigitsWithProperty)
+                                .head()
+                        )
+                )
+                .map(CharSeq::parseLong);
+    }
 
     /**
      * <strong>Problem 43 Sub-string divisibility</strong>
@@ -69,30 +94,5 @@ public class Euler43Test {
         Assertions.assertThat(result).contains(1406357289L);
 
         assertThat(result.sum().longValue()).isEqualTo(16695334890L);
-    }
-
-    private static Seq<Long> tenDigitPandigitalsWithProperty() {
-        final CharSeq ALL_DIGITS = CharSeq.of("0123456789");
-        final List<Integer> DIVISORS = List.of(2, 3, 5, 7, 11, 13, 17);
-
-        return ALL_DIGITS
-                .combinations(2)
-                .flatMap(CharSeq::permutations)
-                .flatMap(firstTwoDigits -> DIVISORS
-                        .foldLeft(List.of(firstTwoDigits), (accumulator, divisor) -> accumulator
-                                .flatMap(digitsSoFar -> ALL_DIGITS
-                                        .removeAll(digitsSoFar)
-                                        .map(nextDigit -> digitsSoFar.append(nextDigit))
-                                )
-                                .filter(digitsToTest -> digitsToTest.takeRight(3).parseInt() % divisor == 0)
-                        )
-                )
-                .map(tailDigitsWithProperty -> tailDigitsWithProperty
-                        .prepend(ALL_DIGITS
-                                .removeAll(tailDigitsWithProperty)
-                                .head()
-                        )
-                )
-                .map(CharSeq::parseLong);
     }
 }

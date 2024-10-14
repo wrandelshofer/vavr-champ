@@ -41,20 +41,42 @@ interface ArrayType<T> extends Serializable {
 
     long serialVersionUID = 1L;
 
+    /**
+     * Store the content of an iterator in an array
+     */
+    static Object[] asArray(java.util.Iterator<?> it, int length) {
+        final Object[] array = new Object[length];
+        for (int i = 0; i < length; i++) {
+            array[i] = it.next();
+        }
+        return array;
+    }
+
     @SuppressWarnings("unchecked")
-    static <T> ArrayType<T> obj() { return (ArrayType<T>) ObjectArrayType.INSTANCE; }
-
-    Class<T> type();
-    int lengthOf(Object array);
-    T getAt(Object array, int index);
-
-    Object empty();
-    void setAt(Object array, int index, T value) throws ClassCastException;
-    Object copy(Object array, int arraySize, int sourceFrom, int destinationFrom, int size);
+    static <T> T asPrimitives(Class<?> primitiveClass, Iterable<?> values) {
+        final Object[] array = Array.ofAll(values).toJavaArray();
+        final ArrayType<T> type = of((Class<T>) primitiveClass);
+        final Object results = type.newInstance(array.length);
+        for (int i = 0; i < array.length; i++) {
+            type.setAt(results, i, (T) array[i]);
+        }
+        return (T) results;
+    }
 
     @SuppressWarnings("unchecked")
-    static <T> ArrayType<T> of(Object array)  { return of((Class<T>) array.getClass().getComponentType()); }
-    static <T> ArrayType<T> of(Class<T> type) { return !type.isPrimitive() ? obj() : ofPrimitive(type); }
+    static <T> ArrayType<T> obj() {
+        return (ArrayType<T>) ObjectArrayType.INSTANCE;
+    }
+
+    @SuppressWarnings("unchecked")
+    static <T> ArrayType<T> of(Object array) {
+        return of((Class<T>) array.getClass().getComponentType());
+    }
+
+    static <T> ArrayType<T> of(Class<T> type) {
+        return !type.isPrimitive() ? obj() : ofPrimitive(type);
+    }
+
     @SuppressWarnings("unchecked")
     static <T> ArrayType<T> ofPrimitive(Class<T> type) {
         if (boolean.class == type) {
@@ -78,15 +100,62 @@ interface ArrayType<T> extends Serializable {
         }
     }
 
-    default Object newInstance(int length) { return copy(empty(), length); }
+    /**
+     * Create a single element array
+     */
+    default Object asArray(T element) {
+        final Object result = newInstance(1);
+        setAt(result, 0, element);
+        return result;
+    }
 
-    /** System.arrayCopy with same source and destination */
+    Object copy(Object array, int arraySize, int sourceFrom, int destinationFrom, int size);
+
+    default Object copy(Object array, int minLength) {
+        final int arrayLength = lengthOf(array);
+        final int length = Math.max(arrayLength, minLength);
+        return copy(array, length, 0, 0, arrayLength);
+    }
+
+    /**
+     * clone the source and keep everything after the index (pre-padding the values with null)
+     */
+    default Object copyDrop(Object array, int index) {
+        final int length = lengthOf(array);
+        return copy(array, length, index, index, length - index);
+    }
+
+    /**
+     * System.arrayCopy with same source and destination
+     */
     default Object copyRange(Object array, int from, int to) {
         final int length = to - from;
         return copy(array, length, from, 0, length);
     }
 
-    /** Repeatedly group an array into equal sized sub-trees */
+    /**
+     * clone the source and keep everything before and including the index
+     */
+    default Object copyTake(Object array, int lastIndex) {
+        return copyRange(array, 0, lastIndex + 1);
+    }
+
+    /**
+     * clone the source and set the value at the given position
+     */
+    default Object copyUpdate(Object array, int index, T element) {
+        final Object copy = copy(array, index + 1);
+        setAt(copy, index, element);
+        return copy;
+    }
+
+    Object empty();
+
+    T getAt(Object array, int index);
+
+    /**
+     * Repeatedly group an array into equal sized sub-trees
+     */
     default Object grouped(Object array, int groupSize) {
         final int arrayLength = lengthOf(array);
         final Object results = obj().newInstance(1 + ((arrayLength - 1) / groupSize));
@@ -101,75 +170,52 @@ interface ArrayType<T> extends Serializable {
         return results;
     }
 
-    /** clone the source and set the value at the given position */
-    default Object copyUpdate(Object array, int index, T element) {
-        final Object copy = copy(array, index + 1);
-        setAt(copy, index, element);
-        return copy;
+    int lengthOf(Object array);
+
+    default Object newInstance(int length) {
+        return copy(empty(), length);
     }
 
-    default Object copy(Object array, int minLength) {
-        final int arrayLength = lengthOf(array);
-        final int length = Math.max(arrayLength, minLength);
-        return copy(array, length, 0, 0, arrayLength);
-    }
+    void setAt(Object array, int index, T value) throws ClassCastException;
 
-    /** clone the source and keep everything after the index (pre-padding the values with null) */
-    default Object copyDrop(Object array, int index) {
-        final int length = lengthOf(array);
-        return copy(array, length, index, index, length - index);
-    }
-
-    /** clone the source and keep everything before and including the index */
-    default Object copyTake(Object array, int lastIndex) {
-        return copyRange(array, 0, lastIndex + 1);
-    }
-
-    /** Create a single element array */
-    default Object asArray(T element) {
-        final Object result = newInstance(1);
-        setAt(result, 0, element);
-        return result;
-    }
-
-    /** Store the content of an iterator in an array */
-    static Object[] asArray(java.util.Iterator<?> it, int length) {
-        final Object[] array = new Object[length];
-        for (int i = 0; i < length; i++) {
-            array[i] = it.next();
-        }
-        return array;
-    }
-
-    @SuppressWarnings("unchecked")
-    static <T> T asPrimitives(Class<?> primitiveClass, Iterable<?> values) {
-        final Object[] array = Array.ofAll(values).toJavaArray();
-        final ArrayType<T> type = of((Class<T>) primitiveClass);
-        final Object results = type.newInstance(array.length);
-        for (int i = 0; i < array.length; i++) {
-            type.setAt(results, i, (T) array[i]);
-        }
-        return (T) results;
-    }
+    Class<T> type();
 
     final class BooleanArrayType implements ArrayType<Boolean>, Serializable {
-        private static final long serialVersionUID = 1L;
         static final BooleanArrayType INSTANCE = new BooleanArrayType();
         static final boolean[] EMPTY = new boolean[0];
+        private static final long serialVersionUID = 1L;
 
-        private static boolean[] cast(Object array) { return (boolean[]) array; }
+        private static boolean[] cast(Object array) {
+            return (boolean[]) array;
+        }
+
+        private static Object copyNonEmpty(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
+            final boolean[] result = new boolean[arraySize];
+            System.arraycopy(array, sourceFrom, result, destinationFrom, size); /* has to be near the object allocation to avoid zeroing out the array */
+            return result;
+        }
 
         @Override
-        public Class<Boolean> type() { return boolean.class; }
+        public Object copy(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
+            return (size > 0)
+                    ? copyNonEmpty(array, arraySize, sourceFrom, destinationFrom, size)
+                    : new boolean[arraySize];
+        }
 
         @Override
-        public boolean[] empty() { return EMPTY; }
+        public boolean[] empty() {
+            return EMPTY;
+        }
 
         @Override
-        public int lengthOf(Object array) { return (array != null) ? cast(array).length : 0; }
+        public Boolean getAt(Object array, int index) {
+            return cast(array)[index];
+        }
 
         @Override
-        public Boolean getAt(Object array, int index) { return cast(array)[index]; }
+        public int lengthOf(Object array) {
+            return (array != null) ? cast(array).length : 0;
+        }
 
         @Override
         public void setAt(Object array, int index, Boolean value) throws ClassCastException {
@@ -181,36 +227,47 @@ interface ArrayType<T> extends Serializable {
         }
 
         @Override
-        public Object copy(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
-            return (size > 0)
-                    ? copyNonEmpty(array, arraySize, sourceFrom, destinationFrom, size)
-                    : new boolean[arraySize];
-        }
-        private static Object copyNonEmpty(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
-            final boolean[] result = new boolean[arraySize];
-            System.arraycopy(array, sourceFrom, result, destinationFrom, size); /* has to be near the object allocation to avoid zeroing out the array */
-            return result;
+        public Class<Boolean> type() {
+            return boolean.class;
         }
     }
 
     final class ByteArrayType implements ArrayType<Byte>, Serializable {
-        private static final long serialVersionUID = 1L;
         static final ByteArrayType INSTANCE = new ByteArrayType();
         static final byte[] EMPTY = new byte[0];
+        private static final long serialVersionUID = 1L;
 
-        private static byte[] cast(Object array) { return (byte[]) array; }
+        private static byte[] cast(Object array) {
+            return (byte[]) array;
+        }
+
+        private static Object copyNonEmpty(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
+            final byte[] result = new byte[arraySize];
+            System.arraycopy(array, sourceFrom, result, destinationFrom, size); /* has to be near the object allocation to avoid zeroing out the array */
+            return result;
+        }
 
         @Override
-        public Class<Byte> type() { return byte.class; }
+        public Object copy(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
+            return (size > 0)
+                    ? copyNonEmpty(array, arraySize, sourceFrom, destinationFrom, size)
+                    : new byte[arraySize];
+        }
 
         @Override
-        public byte[] empty() { return EMPTY; }
+        public byte[] empty() {
+            return EMPTY;
+        }
 
         @Override
-        public int lengthOf(Object array) { return (array != null) ? cast(array).length : 0; }
+        public Byte getAt(Object array, int index) {
+            return cast(array)[index];
+        }
 
         @Override
-        public Byte getAt(Object array, int index) { return cast(array)[index]; }
+        public int lengthOf(Object array) {
+            return (array != null) ? cast(array).length : 0;
+        }
 
         @Override
         public void setAt(Object array, int index, Byte value) throws ClassCastException {
@@ -222,36 +279,47 @@ interface ArrayType<T> extends Serializable {
         }
 
         @Override
-        public Object copy(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
-            return (size > 0)
-                    ? copyNonEmpty(array, arraySize, sourceFrom, destinationFrom, size)
-                    : new byte[arraySize];
-        }
-        private static Object copyNonEmpty(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
-            final byte[] result = new byte[arraySize];
-            System.arraycopy(array, sourceFrom, result, destinationFrom, size); /* has to be near the object allocation to avoid zeroing out the array */
-            return result;
+        public Class<Byte> type() {
+            return byte.class;
         }
     }
 
     final class CharArrayType implements ArrayType<Character>, Serializable {
-        private static final long serialVersionUID = 1L;
         static final CharArrayType INSTANCE = new CharArrayType();
         static final char[] EMPTY = new char[0];
+        private static final long serialVersionUID = 1L;
 
-        private static char[] cast(Object array) { return (char[]) array; }
+        private static char[] cast(Object array) {
+            return (char[]) array;
+        }
+
+        private static Object copyNonEmpty(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
+            final char[] result = new char[arraySize];
+            System.arraycopy(array, sourceFrom, result, destinationFrom, size); /* has to be near the object allocation to avoid zeroing out the array */
+            return result;
+        }
 
         @Override
-        public Class<Character> type() { return char.class; }
+        public Object copy(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
+            return (size > 0)
+                    ? copyNonEmpty(array, arraySize, sourceFrom, destinationFrom, size)
+                    : new char[arraySize];
+        }
 
         @Override
-        public char[] empty() { return EMPTY; }
+        public char[] empty() {
+            return EMPTY;
+        }
 
         @Override
-        public int lengthOf(Object array) { return (array != null) ? cast(array).length : 0; }
+        public Character getAt(Object array, int index) {
+            return cast(array)[index];
+        }
 
         @Override
-        public Character getAt(Object array, int index) { return cast(array)[index]; }
+        public int lengthOf(Object array) {
+            return (array != null) ? cast(array).length : 0;
+        }
 
         @Override
         public void setAt(Object array, int index, Character value) throws ClassCastException {
@@ -263,36 +331,47 @@ interface ArrayType<T> extends Serializable {
         }
 
         @Override
-        public Object copy(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
-            return (size > 0)
-                    ? copyNonEmpty(array, arraySize, sourceFrom, destinationFrom, size)
-                    : new char[arraySize];
-        }
-        private static Object copyNonEmpty(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
-            final char[] result = new char[arraySize];
-            System.arraycopy(array, sourceFrom, result, destinationFrom, size); /* has to be near the object allocation to avoid zeroing out the array */
-            return result;
+        public Class<Character> type() {
+            return char.class;
         }
     }
 
     final class DoubleArrayType implements ArrayType<Double>, Serializable {
-        private static final long serialVersionUID = 1L;
         static final DoubleArrayType INSTANCE = new DoubleArrayType();
         static final double[] EMPTY = new double[0];
+        private static final long serialVersionUID = 1L;
 
-        private static double[] cast(Object array) { return (double[]) array; }
+        private static double[] cast(Object array) {
+            return (double[]) array;
+        }
+
+        private static Object copyNonEmpty(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
+            final double[] result = new double[arraySize];
+            System.arraycopy(array, sourceFrom, result, destinationFrom, size); /* has to be near the object allocation to avoid zeroing out the array */
+            return result;
+        }
 
         @Override
-        public Class<Double> type() { return double.class; }
+        public Object copy(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
+            return (size > 0)
+                    ? copyNonEmpty(array, arraySize, sourceFrom, destinationFrom, size)
+                    : new double[arraySize];
+        }
 
         @Override
-        public double[] empty() { return EMPTY; }
+        public double[] empty() {
+            return EMPTY;
+        }
 
         @Override
-        public int lengthOf(Object array) { return (array != null) ? cast(array).length : 0; }
+        public Double getAt(Object array, int index) {
+            return cast(array)[index];
+        }
 
         @Override
-        public Double getAt(Object array, int index) { return cast(array)[index]; }
+        public int lengthOf(Object array) {
+            return (array != null) ? cast(array).length : 0;
+        }
 
         @Override
         public void setAt(Object array, int index, Double value) throws ClassCastException {
@@ -304,36 +383,47 @@ interface ArrayType<T> extends Serializable {
         }
 
         @Override
-        public Object copy(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
-            return (size > 0)
-                    ? copyNonEmpty(array, arraySize, sourceFrom, destinationFrom, size)
-                    : new double[arraySize];
-        }
-        private static Object copyNonEmpty(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
-            final double[] result = new double[arraySize];
-            System.arraycopy(array, sourceFrom, result, destinationFrom, size); /* has to be near the object allocation to avoid zeroing out the array */
-            return result;
+        public Class<Double> type() {
+            return double.class;
         }
     }
 
     final class FloatArrayType implements ArrayType<Float>, Serializable {
-        private static final long serialVersionUID = 1L;
         static final FloatArrayType INSTANCE = new FloatArrayType();
         static final float[] EMPTY = new float[0];
+        private static final long serialVersionUID = 1L;
 
-        private static float[] cast(Object array) { return (float[]) array; }
+        private static float[] cast(Object array) {
+            return (float[]) array;
+        }
+
+        private static Object copyNonEmpty(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
+            final float[] result = new float[arraySize];
+            System.arraycopy(array, sourceFrom, result, destinationFrom, size); /* has to be near the object allocation to avoid zeroing out the array */
+            return result;
+        }
 
         @Override
-        public Class<Float> type() { return float.class; }
+        public Object copy(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
+            return (size > 0)
+                    ? copyNonEmpty(array, arraySize, sourceFrom, destinationFrom, size)
+                    : new float[arraySize];
+        }
 
         @Override
-        public float[] empty() { return EMPTY; }
+        public float[] empty() {
+            return EMPTY;
+        }
 
         @Override
-        public int lengthOf(Object array) { return (array != null) ? cast(array).length : 0; }
+        public Float getAt(Object array, int index) {
+            return cast(array)[index];
+        }
 
         @Override
-        public Float getAt(Object array, int index) { return cast(array)[index]; }
+        public int lengthOf(Object array) {
+            return (array != null) ? cast(array).length : 0;
+        }
 
         @Override
         public void setAt(Object array, int index, Float value) throws ClassCastException {
@@ -345,36 +435,47 @@ interface ArrayType<T> extends Serializable {
         }
 
         @Override
-        public Object copy(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
-            return (size > 0)
-                    ? copyNonEmpty(array, arraySize, sourceFrom, destinationFrom, size)
-                    : new float[arraySize];
-        }
-        private static Object copyNonEmpty(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
-            final float[] result = new float[arraySize];
-            System.arraycopy(array, sourceFrom, result, destinationFrom, size); /* has to be near the object allocation to avoid zeroing out the array */
-            return result;
+        public Class<Float> type() {
+            return float.class;
         }
     }
 
     final class IntArrayType implements ArrayType<Integer>, Serializable {
-        private static final long serialVersionUID = 1L;
         static final IntArrayType INSTANCE = new IntArrayType();
         static final int[] EMPTY = new int[0];
+        private static final long serialVersionUID = 1L;
 
-        private static int[] cast(Object array) { return (int[]) array; }
+        private static int[] cast(Object array) {
+            return (int[]) array;
+        }
+
+        private static Object copyNonEmpty(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
+            final int[] result = new int[arraySize];
+            System.arraycopy(array, sourceFrom, result, destinationFrom, size); /* has to be near the object allocation to avoid zeroing out the array */
+            return result;
+        }
 
         @Override
-        public Class<Integer> type() { return int.class; }
+        public Object copy(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
+            return (size > 0)
+                    ? copyNonEmpty(array, arraySize, sourceFrom, destinationFrom, size)
+                    : new int[arraySize];
+        }
 
         @Override
-        public int[] empty() { return EMPTY; }
+        public int[] empty() {
+            return EMPTY;
+        }
 
         @Override
-        public int lengthOf(Object array) { return (array != null) ? cast(array).length : 0; }
+        public Integer getAt(Object array, int index) {
+            return cast(array)[index];
+        }
 
         @Override
-        public Integer getAt(Object array, int index) { return cast(array)[index]; }
+        public int lengthOf(Object array) {
+            return (array != null) ? cast(array).length : 0;
+        }
 
         @Override
         public void setAt(Object array, int index, Integer value) throws ClassCastException {
@@ -386,36 +487,47 @@ interface ArrayType<T> extends Serializable {
         }
 
         @Override
-        public Object copy(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
-            return (size > 0)
-                    ? copyNonEmpty(array, arraySize, sourceFrom, destinationFrom, size)
-                    : new int[arraySize];
-        }
-        private static Object copyNonEmpty(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
-            final int[] result = new int[arraySize];
-            System.arraycopy(array, sourceFrom, result, destinationFrom, size); /* has to be near the object allocation to avoid zeroing out the array */
-            return result;
+        public Class<Integer> type() {
+            return int.class;
         }
     }
 
     final class LongArrayType implements ArrayType<Long>, Serializable {
-        private static final long serialVersionUID = 1L;
         static final LongArrayType INSTANCE = new LongArrayType();
         static final long[] EMPTY = new long[0];
+        private static final long serialVersionUID = 1L;
 
-        private static long[] cast(Object array) { return (long[]) array; }
+        private static long[] cast(Object array) {
+            return (long[]) array;
+        }
+
+        private static Object copyNonEmpty(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
+            final long[] result = new long[arraySize];
+            System.arraycopy(array, sourceFrom, result, destinationFrom, size); /* has to be near the object allocation to avoid zeroing out the array */
+            return result;
+        }
 
         @Override
-        public Class<Long> type() { return long.class; }
+        public Object copy(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
+            return (size > 0)
+                    ? copyNonEmpty(array, arraySize, sourceFrom, destinationFrom, size)
+                    : new long[arraySize];
+        }
 
         @Override
-        public long[] empty() { return EMPTY; }
+        public long[] empty() {
+            return EMPTY;
+        }
 
         @Override
-        public int lengthOf(Object array) { return (array != null) ? cast(array).length : 0; }
+        public Long getAt(Object array, int index) {
+            return cast(array)[index];
+        }
 
         @Override
-        public Long getAt(Object array, int index) { return cast(array)[index]; }
+        public int lengthOf(Object array) {
+            return (array != null) ? cast(array).length : 0;
+        }
 
         @Override
         public void setAt(Object array, int index, Long value) throws ClassCastException {
@@ -427,36 +539,47 @@ interface ArrayType<T> extends Serializable {
         }
 
         @Override
-        public Object copy(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
-            return (size > 0)
-                    ? copyNonEmpty(array, arraySize, sourceFrom, destinationFrom, size)
-                    : new long[arraySize];
-        }
-        private static Object copyNonEmpty(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
-            final long[] result = new long[arraySize];
-            System.arraycopy(array, sourceFrom, result, destinationFrom, size); /* has to be near the object allocation to avoid zeroing out the array */
-            return result;
+        public Class<Long> type() {
+            return long.class;
         }
     }
 
     final class ShortArrayType implements ArrayType<Short>, Serializable {
-        private static final long serialVersionUID = 1L;
         static final ShortArrayType INSTANCE = new ShortArrayType();
         static final short[] EMPTY = new short[0];
+        private static final long serialVersionUID = 1L;
 
-        private static short[] cast(Object array) { return (short[]) array; }
+        private static short[] cast(Object array) {
+            return (short[]) array;
+        }
+
+        private static Object copyNonEmpty(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
+            final short[] result = new short[arraySize];
+            System.arraycopy(array, sourceFrom, result, destinationFrom, size); /* has to be near the object allocation to avoid zeroing out the array */
+            return result;
+        }
 
         @Override
-        public Class<Short> type() { return short.class; }
+        public Object copy(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
+            return (size > 0)
+                    ? copyNonEmpty(array, arraySize, sourceFrom, destinationFrom, size)
+                    : new short[arraySize];
+        }
 
         @Override
-        public short[] empty() { return EMPTY; }
+        public short[] empty() {
+            return EMPTY;
+        }
 
         @Override
-        public int lengthOf(Object array) { return (array != null) ? cast(array).length : 0; }
+        public Short getAt(Object array, int index) {
+            return cast(array)[index];
+        }
 
         @Override
-        public Short getAt(Object array, int index) { return cast(array)[index]; }
+        public int lengthOf(Object array) {
+            return (array != null) ? cast(array).length : 0;
+        }
 
         @Override
         public void setAt(Object array, int index, Short value) throws ClassCastException {
@@ -468,40 +591,24 @@ interface ArrayType<T> extends Serializable {
         }
 
         @Override
-        public Object copy(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
-            return (size > 0)
-                    ? copyNonEmpty(array, arraySize, sourceFrom, destinationFrom, size)
-                    : new short[arraySize];
-        }
-        private static Object copyNonEmpty(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
-            final short[] result = new short[arraySize];
-            System.arraycopy(array, sourceFrom, result, destinationFrom, size); /* has to be near the object allocation to avoid zeroing out the array */
-            return result;
+        public Class<Short> type() {
+            return short.class;
         }
     }
 
     final class ObjectArrayType implements ArrayType<Object>, Serializable {
-        private static final long serialVersionUID = 1L;
         static final ObjectArrayType INSTANCE = new ObjectArrayType();
         static final Object[] EMPTY = new Object[0];
+        private static final long serialVersionUID = 1L;
 
-        private static Object[] cast(Object array) { return (Object[]) array; }
+        private static Object[] cast(Object array) {
+            return (Object[]) array;
+        }
 
-        @Override
-        public Class<Object> type() { return Object.class; }
-
-        @Override
-        public Object[] empty() { return EMPTY; }
-
-        @Override
-        public int lengthOf(Object array) { return (array != null) ? cast(array).length : 0; }
-
-        @Override
-        public Object getAt(Object array, int index) { return cast(array)[index]; }
-
-        @Override
-        public void setAt(Object array, int index, Object value) {
-            cast(array)[index] = value;
+        private static Object copyNonEmpty(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
+            final Object[] result = new Object[arraySize];
+            System.arraycopy(array, sourceFrom, result, destinationFrom, size); /* has to be near the object allocation to avoid zeroing out the array */
+            return result;
         }
 
         @Override
@@ -510,10 +617,30 @@ interface ArrayType<T> extends Serializable {
                     ? copyNonEmpty(array, arraySize, sourceFrom, destinationFrom, size)
                     : new Object[arraySize];
         }
-        private static Object copyNonEmpty(Object array, int arraySize, int sourceFrom, int destinationFrom, int size) {
-            final Object[] result = new Object[arraySize];
-            System.arraycopy(array, sourceFrom, result, destinationFrom, size); /* has to be near the object allocation to avoid zeroing out the array */
-            return result;
+
+        @Override
+        public Object[] empty() {
+            return EMPTY;
+        }
+
+        @Override
+        public Object getAt(Object array, int index) {
+            return cast(array)[index];
+        }
+
+        @Override
+        public int lengthOf(Object array) {
+            return (array != null) ? cast(array).length : 0;
+        }
+
+        @Override
+        public void setAt(Object array, int index, Object value) {
+            cast(array)[index] = value;
+        }
+
+        @Override
+        public Class<Object> type() {
+            return Object.class;
         }
     }
 }

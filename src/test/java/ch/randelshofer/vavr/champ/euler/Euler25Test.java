@@ -61,16 +61,16 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class Euler25Test {
 
-    @Test
-    public void shouldSolveProblem25() {
-        assertThat(firstFibonacciTermContaining(3)).isEqualTo(12);
-        assertThat(firstFibonacciTermContaining(1000)).isEqualTo(4782);
-    }
-
     private static int firstFibonacciTermContaining(int digits) {
         return fibonacci()
                 .zipWithIndex()
                 .find(t -> t._1.toString().length() == digits)
                 .get()._2;
+    }
+
+    @Test
+    public void shouldSolveProblem25() {
+        assertThat(firstFibonacciTermContaining(3)).isEqualTo(12);
+        assertThat(firstFibonacciTermContaining(1000)).isEqualTo(4782);
     }
 }

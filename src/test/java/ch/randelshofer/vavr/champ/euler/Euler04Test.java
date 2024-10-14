@@ -33,6 +33,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler04Test {
 
+    private static int largestPalindromeOfProductsFromFactorsInRange(final int min, final int max) {
+        return List.rangeClosed(min, max)
+                .crossProduct()
+                .filter(t -> t._1 <= t._2)
+                .map(t -> t._1 * t._2)
+                .filter(Utils::isPalindrome)
+                .max().get();
+    }
+
     /**
      * <strong>Problem 4: Largest palindrome product</strong>
      * <p>
@@ -47,14 +56,5 @@ public class Euler04Test {
     public void shouldSolveProblem4() {
         assertThat(largestPalindromeOfProductsFromFactorsInRange(10, 99)).isEqualTo(9009);
         assertThat(largestPalindromeOfProductsFromFactorsInRange(100, 999)).isEqualTo(906609);
-    }
-
-    private static int largestPalindromeOfProductsFromFactorsInRange(final int min, final int max) {
-        return List.rangeClosed(min, max)
-                .crossProduct()
-                .filter(t -> t._1 <= t._2)
-                .map(t -> t._1 * t._2)
-                .filter(Utils::isPalindrome)
-                .max().get();
     }
 }

@@ -35,6 +35,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler71Test {
 
+    private static int left37(int maxDenominator) {
+        return Stream.iterate(Tuple.of(0, 1, 1, 1), (Tuple4<Integer, Integer, Integer, Integer> t) -> {
+            final int m1 = t._1 + t._3;
+            final int m2 = t._2 + t._4;
+            if (m1 * 7 >= m2 * 3) {
+                return Tuple.of(t._1, t._2, m1, m2);
+            } else {
+                return Tuple.of(m1, m2, t._3, t._4);
+            }
+        }).takeWhile(t -> t._2 <= maxDenominator && t._4 <= maxDenominator).last()._1;
+    }
+
     /**
      * <strong>Problem 71: Ordered fractions</strong>
      * <p>
@@ -54,17 +66,5 @@ public class Euler71Test {
     public void shouldSolveProblem71() {
         assertThat(left37(8)).isEqualTo(2);
         assertThat(left37(1_000_000)).isEqualTo(428_570);
-    }
-
-    private static int left37(int maxDenominator) {
-        return Stream.iterate(Tuple.of(0, 1, 1, 1), (Tuple4<Integer, Integer, Integer, Integer> t) -> {
-            final int m1 = t._1 + t._3;
-            final int m2 = t._2 + t._4;
-            if (m1 * 7 >= m2 * 3) {
-                return Tuple.of(t._1, t._2, m1, m2);
-            } else {
-                return Tuple.of(m1, m2, t._3, t._4);
-            }
-        }).takeWhile(t -> t._2 <= maxDenominator && t._4 <= maxDenominator).last()._1;
     }
 }

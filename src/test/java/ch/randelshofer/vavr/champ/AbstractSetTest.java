@@ -59,20 +59,15 @@ public abstract class AbstractSetTest extends AbstractTraversableRangeTest {
     // -- static narrow
 
     @Test
-    public void shouldNarrowSet() {
-        final Set<Double> doubles = of(1.0d);
-        final Set<Number> numbers = Set.narrow(doubles);
-        final int actual = numbers.add(new BigDecimal("2.0")).sum().intValue();
-        assertThat(actual).isEqualTo(3);
+    public void shouldAddAllOfIterable() {
+        assertThat(of(1, 2, 3).addAll(of(2, 3, 4))).isEqualTo(of(1, 2, 3, 4));
     }
 
     // -- fill(int, Supplier)
 
     @Test
-    public void shouldReturnSingleAfterFillWithConstant() {
-        assertThat(fill(17, () -> 7))
-                .hasSize(1)
-                .isEqualTo(of(7));
+    public void shouldAddNonNullAndNull() {
+        assertThat(emptyWithNull().add(1).add(null)).contains(null, 1);
     }
 
     // -- add
@@ -82,47 +77,11 @@ public abstract class AbstractSetTest extends AbstractTraversableRangeTest {
         assertThat(emptyWithNull().add(null).add(1)).contains(null, 1);
     }
 
+    @Override
     @Test
-    public void shouldAddNonNullAndNull() {
-        assertThat(emptyWithNull().add(1).add(null)).contains(null, 1);
+    public void shouldBeAwareOfExistingNonUniqueElement() {
+        // sets have only distinct elements
     }
-
-    @Test
-    public void shouldNotAddAnExistingElementTwice() {
-        final Set<IntMod2> set = of(new IntMod2(2));
-        assertThat(set.add(new IntMod2(4))).isSameAs(set);
-    }
-
-    // -- addAll
-
-    @Test
-    public void shouldAddAllOfIterable() {
-        assertThat(of(1, 2, 3).addAll(of(2, 3, 4))).isEqualTo(of(1, 2, 3, 4));
-    }
-
-    @Test
-    public void shouldReturnSameSetWhenAddAllEmptyToNonEmpty() {
-        final Set<Integer> set = of(1, 2, 3);
-        assertThat(set.addAll(empty())).isSameAs(set);
-    }
-
-    @Test
-    public void shouldReturnSameSetWhenAddAllNonEmptyToEmpty() {
-        final Set<Integer> set = of(1, 2, 3);
-        if (set.isOrdered()) {
-            assertThat(empty().addAll(set)).isEqualTo(set);
-        } else {
-            assertThat(empty().addAll(set)).isSameAs(set);
-        }
-    }
-
-    @Test
-    public void shouldReturnSameSetWhenAddAllContainedElements() {
-        final Set<Integer> set = of(1, 2, 3);
-        assertThat(set.addAll(of(1, 2, 3))).isSameAs(set);
-    }
-
-    // -- diff
 
     @Test
     public void shouldCalculateDifference() {
@@ -131,16 +90,51 @@ public abstract class AbstractSetTest extends AbstractTraversableRangeTest {
         assertThat(of(1, 2, 3).diff(of(1, 2, 3))).isEqualTo(empty());
     }
 
+    // -- addAll
+
     @Test
-    public void shouldReturnSameSetWhenEmptyDiffNonEmpty() {
-        final Set<Integer> empty = empty();
-        assertThat(empty.diff(of(1, 2))).isSameAs(empty);
+    public void shouldCalculateIntersect() {
+        assertThat(of(1, 2, 3).intersect(of(2))).isEqualTo(of(2));
+        assertThat(of(1, 2, 3).intersect(of(5))).isEqualTo(empty());
+        assertThat(of(1, 2, 3).intersect(of(1, 2, 3))).isEqualTo(of(1, 2, 3));
     }
 
     @Test
-    public void shouldReturnSameSetWhenNonEmptyDiffEmpty() {
-        final Set<Integer> set = of(1, 2);
-        assertThat(set.diff(empty())).isSameAs(set);
+    public void shouldCalculateUnion() {
+        assertThat(of(1, 2, 3).union(of(2))).isEqualTo(of(1, 2, 3));
+        assertThat(of(1, 2, 3).union(of(5))).isEqualTo(of(1, 2, 3, 5));
+        assertThat(of(1, 2, 3).union(of(1, 2, 3))).isEqualTo(of(1, 2, 3));
+    }
+
+    @Test
+    public void shouldHaveDistinctSpliterator() {
+        assertThat(of(1, 2, 3).spliterator().hasCharacteristics(Spliterator.DISTINCT)).isTrue();
+    }
+
+    @Test
+    public void shouldHaveSizedSpliterator() {
+        assertThat(of(1, 2, 3).spliterator().hasCharacteristics(Spliterator.SIZED | Spliterator.SUBSIZED)).isTrue();
+    }
+
+    // -- diff
+
+    @Test
+    public void shouldMapDistinctElementsToOneElement() {
+        assertThat(of(1, 2, 3).map(i -> 0)).isEqualTo(of(0));
+    }
+
+    @Test
+    public void shouldNarrowSet() {
+        final Set<Double> doubles = of(1.0d);
+        final Set<Number> numbers = Set.narrow(doubles);
+        final int actual = numbers.add(new BigDecimal("2.0")).sum().intValue();
+        assertThat(actual).isEqualTo(3);
+    }
+
+    @Test
+    public void shouldNotAddAnExistingElementTwice() {
+        final Set<IntMod2> set = of(new IntMod2(2));
+        assertThat(set.add(new IntMod2(4))).isSameAs(set);
     }
 
     // -- equality
@@ -169,48 +163,6 @@ public abstract class AbstractSetTest extends AbstractTraversableRangeTest {
     // -- intersect
 
     @Test
-    public void shouldCalculateIntersect() {
-        assertThat(of(1, 2, 3).intersect(of(2))).isEqualTo(of(2));
-        assertThat(of(1, 2, 3).intersect(of(5))).isEqualTo(empty());
-        assertThat(of(1, 2, 3).intersect(of(1, 2, 3))).isEqualTo(of(1, 2, 3));
-    }
-
-    @Test
-    public void shouldReturnSameSetWhenEmptyIntersectNonEmpty() {
-        final Set<Integer> empty = empty();
-        assertThat(empty.intersect(of(1, 2))).isSameAs(empty);
-    }
-
-    @Test
-    public void shouldReturnSameSetWhenNonEmptyIntersectEmpty() {
-        final Set<Integer> set = of(1, 2);
-        final Set<Integer> empty = empty();
-        if (set.isOrdered()) {
-            assertThat(set.intersect(empty)).isEqualTo(empty);
-        } else {
-            assertThat(set.intersect(empty)).isSameAs(empty);
-        }
-    }
-
-    // -- map
-
-    @Test
-    public void shouldMapDistinctElementsToOneElement() {
-        assertThat(of(1, 2, 3).map(i -> 0)).isEqualTo(of(0));
-    }
-
-    // -- remove
-
-    @Test
-    public void shouldRemoveElement() {
-        assertThat(of(1, 2, 3).remove(2)).isEqualTo(of(1, 3));
-        assertThat(of(1, 2, 3).remove(5)).isEqualTo(of(1, 2, 3));
-        assertThat(empty().remove(5)).isEqualTo(empty());
-    }
-
-    // -- partition
-
-    @Test
     public void shouldPartitionInOneIteration() {
         final AtomicInteger count = new AtomicInteger(0);
         final Tuple2<? extends Set<Integer>, ? extends Set<Integer>> results = of(1, 2, 3).partition(i -> {
@@ -222,8 +174,6 @@ public abstract class AbstractSetTest extends AbstractTraversableRangeTest {
         assertThat(count.get()).isEqualTo(3);
     }
 
-    // -- removeAll
-
     @Test
     public void shouldRemoveAllElements() {
         assertThat(of(1, 2, 3).removeAll(of(2))).isEqualTo(of(1, 3));
@@ -231,24 +181,66 @@ public abstract class AbstractSetTest extends AbstractTraversableRangeTest {
     }
 
     @Test
-    public void shouldReturnSameSetWhenNonEmptyRemoveAllEmpty() {
+    public void shouldRemoveElement() {
+        assertThat(of(1, 2, 3).remove(2)).isEqualTo(of(1, 3));
+        assertThat(of(1, 2, 3).remove(5)).isEqualTo(of(1, 2, 3));
+        assertThat(empty().remove(5)).isEqualTo(empty());
+    }
+
+    // -- map
+
+    @Override
+    @Test
+    public void shouldReplaceFirstOccurrenceOfNonNilUsingCurrNewWhenMultipleOccurrencesExist() {
+        // sets have only distinct elements
+    }
+
+    // -- remove
+
+    @Test
+    public void shouldReturnSameSetWhenAddAllContainedElements() {
         final Set<Integer> set = of(1, 2, 3);
-        assertThat(set.removeAll(empty())).isSameAs(set);
+        assertThat(set.addAll(of(1, 2, 3))).isSameAs(set);
+    }
+
+    // -- partition
+
+    @Test
+    public void shouldReturnSameSetWhenAddAllEmptyToNonEmpty() {
+        final Set<Integer> set = of(1, 2, 3);
+        assertThat(set.addAll(empty())).isSameAs(set);
+    }
+
+    // -- removeAll
+
+    @Test
+    public void shouldReturnSameSetWhenAddAllNonEmptyToEmpty() {
+        final Set<Integer> set = of(1, 2, 3);
+        if (set.isOrdered()) {
+            assertThat(empty().addAll(set)).isEqualTo(set);
+        } else {
+            assertThat(empty().addAll(set)).isSameAs(set);
+        }
     }
 
     @Test
-    public void shouldReturnSameSetWhenEmptyRemoveAllNonEmpty() {
+    public void shouldReturnSameSetWhenEmptyDiffNonEmpty() {
         final Set<Integer> empty = empty();
-        assertThat(empty.removeAll(of(1, 2, 3))).isSameAs(empty);
+        assertThat(empty.diff(of(1, 2))).isSameAs(empty);
+    }
+
+    @Test
+    public void shouldReturnSameSetWhenEmptyIntersectNonEmpty() {
+        final Set<Integer> empty = empty();
+        assertThat(empty.intersect(of(1, 2))).isSameAs(empty);
     }
 
     // -- union
 
     @Test
-    public void shouldCalculateUnion() {
-        assertThat(of(1, 2, 3).union(of(2))).isEqualTo(of(1, 2, 3));
-        assertThat(of(1, 2, 3).union(of(5))).isEqualTo(of(1, 2, 3, 5));
-        assertThat(of(1, 2, 3).union(of(1, 2, 3))).isEqualTo(of(1, 2, 3));
+    public void shouldReturnSameSetWhenEmptyRemoveAllNonEmpty() {
+        final Set<Integer> empty = empty();
+        assertThat(empty.removeAll(of(1, 2, 3))).isSameAs(empty);
     }
 
     @Test
@@ -262,35 +254,43 @@ public abstract class AbstractSetTest extends AbstractTraversableRangeTest {
     }
 
     @Test
-    public void shouldReturnSameSetWhenNonEmptyUnionEmpty() {
+    public void shouldReturnSameSetWhenNonEmptyDiffEmpty() {
         final Set<Integer> set = of(1, 2);
-        assertThat(set.union(empty())).isSameAs(set);
+        assertThat(set.diff(empty())).isSameAs(set);
     }
 
     // disabled tests
 
-    @Override
     @Test
-    public void shouldBeAwareOfExistingNonUniqueElement() {
-        // sets have only distinct elements
+    public void shouldReturnSameSetWhenNonEmptyIntersectEmpty() {
+        final Set<Integer> set = of(1, 2);
+        final Set<Integer> empty = empty();
+        if (set.isOrdered()) {
+            assertThat(set.intersect(empty)).isEqualTo(empty);
+        } else {
+            assertThat(set.intersect(empty)).isSameAs(empty);
+        }
     }
 
-    @Override
     @Test
-    public void shouldReplaceFirstOccurrenceOfNonNilUsingCurrNewWhenMultipleOccurrencesExist() {
-        // sets have only distinct elements
+    public void shouldReturnSameSetWhenNonEmptyRemoveAllEmpty() {
+        final Set<Integer> set = of(1, 2, 3);
+        assertThat(set.removeAll(empty())).isSameAs(set);
     }
 
     // -- spliterator
 
     @Test
-    public void shouldHaveSizedSpliterator() {
-        assertThat(of(1, 2, 3).spliterator().hasCharacteristics(Spliterator.SIZED | Spliterator.SUBSIZED)).isTrue();
+    public void shouldReturnSameSetWhenNonEmptyUnionEmpty() {
+        final Set<Integer> set = of(1, 2);
+        assertThat(set.union(empty())).isSameAs(set);
     }
 
     @Test
-    public void shouldHaveDistinctSpliterator() {
-        assertThat(of(1, 2, 3).spliterator().hasCharacteristics(Spliterator.DISTINCT)).isTrue();
+    public void shouldReturnSingleAfterFillWithConstant() {
+        assertThat(fill(17, () -> 7))
+                .hasSize(1)
+                .isEqualTo(of(7));
     }
 
     @Test

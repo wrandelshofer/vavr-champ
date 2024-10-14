@@ -42,15 +42,14 @@ import static io.vavr.API.$;
 
 final class Utils {
 
+    static final Function1<Integer, BigInteger> MEMOIZED_FACTORIAL = Function1.of(Utils::factorial).memoized();
+    static final Function1<Long, Boolean> MEMOIZED_IS_PRIME = Function1.of(Utils::isPrime).memoized();
+
     private Utils() {
     }
 
-    static final Function1<Integer, BigInteger> MEMOIZED_FACTORIAL = Function1.of(Utils::factorial).memoized();
-
-    static final Function1<Long, Boolean> MEMOIZED_IS_PRIME = Function1.of(Utils::isPrime).memoized();
-
-    static Stream<BigInteger> fibonacci() {
-        return Stream.of(BigInteger.ZERO, BigInteger.ONE).appendSelf(self -> self.zip(self.tail()).map(t -> t._1.add(t._2)));
+    static Stream<Long> divisors(long l) {
+        return factors(l).filter((d) -> d < l);
     }
 
     static BigInteger factorial(int n) {
@@ -64,8 +63,28 @@ final class Utils {
                 .distinct();
     }
 
-    static Stream<Long> divisors(long l) {
-        return factors(l).filter((d) -> d < l);
+    static Stream<BigInteger> fibonacci() {
+        return Stream.of(BigInteger.ZERO, BigInteger.ONE).appendSelf(self -> self.zip(self.tail()).map(t -> t._1.add(t._2)));
+    }
+
+    static File file(String fileName) {
+        final URL resource = Utils.class.getResource(fileName);
+        if (resource == null) {
+            throw new RuntimeException("resource not found");
+        }
+        return new File(resource.getFile());
+    }
+
+    static boolean isPalindrome(String val) {
+        return val.equals(reverse(val));
+    }
+
+    static boolean isPalindrome(int val) {
+        return isPalindrome(Long.toString(val));
+    }
+
+    static boolean isPentagonal(long number) {
+        return ((1 + Math.sqrt(1 + 24 * number)) / 6) % 1 == 0;
     }
 
     static boolean isPrime(long val) {
@@ -77,6 +96,13 @@ final class Utils {
                     return !PrimeNumbers.primes().takeWhile(d -> d <= upperLimitToCheck).exists(d -> n % d == 0);
                 })
         );
+    }
+
+    static Stream<Long> pentagonal() {
+        return Stream.of(Tuple.of(1L, 1)).appendSelf(self ->
+                        self.map(t ->
+                                Tuple.of((t._2 + 1) * (3L * (t._2 + 1) - 1) / 2, t._2 + 1)))
+                .map(t -> t._1);
     }
 
     static Stream<String> readLines(File file) {
@@ -104,34 +130,7 @@ final class Utils {
         }
     }
 
-    static File file(String fileName) {
-        final URL resource = Utils.class.getResource(fileName);
-        if (resource == null) {
-            throw new RuntimeException("resource not found");
-        }
-        return new File(resource.getFile());
-    }
-
     static String reverse(String s) {
         return new StringBuilder(s).reverse().toString();
-    }
-
-    static boolean isPalindrome(String val) {
-        return val.equals(reverse(val));
-    }
-
-    static boolean isPalindrome(int val) {
-        return isPalindrome(Long.toString(val));
-    }
-
-    static Stream<Long> pentagonal() {
-        return Stream.of(Tuple.of(1L, 1)).appendSelf(self ->
-                self.map(t ->
-                        Tuple.of((t._2 + 1) * (3L * (t._2 + 1) - 1) / 2, t._2 + 1)))
-                .map(t -> t._1);
-    }
-
-    static boolean isPentagonal(long number) {
-        return ((1 + Math.sqrt(1 + 24 * number)) / 6) % 1 == 0;
     }
 }

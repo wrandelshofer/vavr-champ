@@ -47,7 +47,6 @@ import java.util.function.ToIntFunction;
  *      <br>Copyright (c) Michael Steindorfer. <a href="https://github.com/usethesource/capsule/blob/3856cd65fa4735c94bcfa94ec9ecf408429b54f4/LICENSE">BSD-2-Clause License</a></dt>
  *      <dd><a href="https://github.com/usethesource/capsule">github.com</a>
  * </dl>
- *
  */
 class ChampTrie {
     /**
@@ -90,13 +89,13 @@ class ChampTrie {
      *
      * @param <D> the type of the data objects that are stored in this trie
      */
-     abstract static class Node<D> {
+    abstract static class Node<D> {
         /**
          * Represents no data.
          * We can not use {@code null}, because we allow storing null-data in the
          * trie.
          */
-         static final Object NO_DATA = new Object();
+        static final Object NO_DATA = new Object();
         static final int HASH_CODE_LENGTH = 32;
         /**
          * Bit partition size in the range [1,5].
@@ -128,7 +127,7 @@ class ChampTrie {
             return 1 << mask;
         }
 
-         static <E>  E getFirst( Node<E> node) {
+        static <E> E getFirst(Node<E> node) {
             while (node instanceof BitmapIndexedNode) {
                 BitmapIndexedNode<E> bxn = (BitmapIndexedNode<E>) node;
                 int nodeMap = bxn.nodeMap();
@@ -151,7 +150,7 @@ class ChampTrie {
             throw new NoSuchElementException();
         }
 
-         static <E>  E getLast( Node<E> node) {
+        static <E> E getLast(Node<E> node) {
             while (node instanceof BitmapIndexedNode) {
                 BitmapIndexedNode<E> bxn = (BitmapIndexedNode<E>) node;
                 int nodeMap = bxn.nodeMap();
@@ -215,6 +214,8 @@ class ChampTrie {
             }
         }
 
+        abstract int calculateSize();
+
         abstract int dataArity();
 
         /**
@@ -223,7 +224,19 @@ class ChampTrie {
          * @param other the other trie
          * @return true if equivalent
          */
-        abstract boolean equivalent( Object other);
+        abstract boolean equivalent(Object other);
+
+        /**
+         * Retains data elements in this trie for which the provided predicate returns true.
+         *
+         * @param owner
+         * @param predicate  a predicate that returns true for data elements that should be retained
+         * @param shift      the shift of this node and the other node
+         * @param bulkChange updates the field {@link BulkChangeEvent#removed}
+         * @return the updated trie
+         */
+        abstract Node<D> filterAll(IdentityObject owner, Predicate<? super D> predicate, int shift,
+                                   BulkChangeEvent bulkChange);
 
         /**
          * Finds a data object in the CHAMP trie, that matches the provided data
@@ -236,63 +249,41 @@ class ChampTrie {
          * @return the found data, returns {@link #NO_DATA} if no data in the trie
          * matches the provided data.
          */
-        abstract Object find(D data, int dataHash, int shift,  BiPredicate<D, D> equalsFunction);
+        abstract Object find(D data, int dataHash, int shift, BiPredicate<D, D> equalsFunction);
 
-        abstract  D getData(int index);
-
-         IdentityObject getOwner() {
-            return null;
-        }
+        abstract D getData(int index);
 
         abstract Node<D> getNode(int index);
 
+        IdentityObject getOwner() {
+            return null;
+        }
+
         abstract boolean hasData();
 
-        boolean isNodeEmpty() {
-            return !hasData() && !hasNodes();
-        }
+        abstract boolean hasDataArityOne();
 
         boolean hasMany() {
             return hasNodes() || dataArity() > 1;
         }
 
-        abstract boolean hasDataArityOne();
-
         abstract boolean hasNodes();
 
-        boolean isAllowedToUpdate( IdentityObject y) {
+        boolean isAllowedToUpdate(IdentityObject y) {
             IdentityObject x = getOwner();
             return x != null && x == y;
+        }
+
+        boolean isNodeEmpty() {
+            return !hasData() && !hasNodes();
         }
 
         abstract int nodeArity();
 
         /**
-         * Removes a data object from the trie.
-         *
-         * @param owner        A non-null value means, that this method may update
-         *                       nodes that are marked with the same unique id,
-         *                       and that this method may create new mutable nodes
-         *                       with this unique id.
-         *                       A null value means, that this method must not update
-         *                       any node and may only create new immutable nodes.
-         * @param data           the data to be removed
-         * @param dataHash       the hash-code of the data object
-         * @param shift          the shift of the current node
-         * @param details        this method reports the changes that it performed
-         *                       in this object
-         * @param equalsFunction a function that tests data objects for equality
-         * @return the updated trie
-         */
-        abstract Node<D> remove(IdentityObject owner, D data,
-                                int dataHash, int shift,
-                                ChangeEvent<D> details,
-                                BiPredicate<D, D> equalsFunction);
-
-        /**
          * Inserts or replaces a data object in the trie.
          *
-         * @param owner        A non-null value means, that this method may update
+         * @param owner          A non-null value means, that this method may update
          *                       nodes that are marked with the same unique id,
          *                       and that this method may create new mutable nodes
          *                       with this unique id.
@@ -323,7 +314,8 @@ class ChampTrie {
                              BiFunction<D, D, D> updateFunction,
                              BiPredicate<D, D> equalsFunction,
                              ToIntFunction<D> hashFunction);
-       /**
+
+        /**
          * Inserts or replaces data elements from the specified other trie in this trie.
          *
          * @param owner
@@ -336,12 +328,34 @@ class ChampTrie {
          * @param details        the change event for single elements
          * @return the updated trie
          */
-         abstract Node<D> putAll(IdentityObject owner, Node<D> otherNode, int shift,
-                                 BulkChangeEvent bulkChange,
-                                 BiFunction<D, D, D> updateFunction,
-                                 BiPredicate<D, D> equalsFunction,
-                                 ToIntFunction<D> hashFunction,
-                                 ChangeEvent<D> details);
+        abstract Node<D> putAll(IdentityObject owner, Node<D> otherNode, int shift,
+                                BulkChangeEvent bulkChange,
+                                BiFunction<D, D, D> updateFunction,
+                                BiPredicate<D, D> equalsFunction,
+                                ToIntFunction<D> hashFunction,
+                                ChangeEvent<D> details);
+
+        /**
+         * Removes a data object from the trie.
+         *
+         * @param owner          A non-null value means, that this method may update
+         *                       nodes that are marked with the same unique id,
+         *                       and that this method may create new mutable nodes
+         *                       with this unique id.
+         *                       A null value means, that this method must not update
+         *                       any node and may only create new immutable nodes.
+         * @param data           the data to be removed
+         * @param dataHash       the hash-code of the data object
+         * @param shift          the shift of the current node
+         * @param details        this method reports the changes that it performed
+         *                       in this object
+         * @param equalsFunction a function that tests data objects for equality
+         * @return the updated trie
+         */
+        abstract Node<D> remove(IdentityObject owner, D data,
+                                int dataHash, int shift,
+                                ChangeEvent<D> details,
+                                BiPredicate<D, D> equalsFunction);
 
         /**
          * Removes data elements in the specified other trie from this trie.
@@ -356,12 +370,12 @@ class ChampTrie {
          * @param details        the change event for single elements
          * @return the updated trie
          */
-         abstract Node<D> removeAll(IdentityObject owner, Node<D> otherNode, int shift,
-                                    BulkChangeEvent bulkChange,
-                                    BiFunction<D, D, D> updateFunction,
-                                    BiPredicate<D, D> equalsFunction,
-                                    ToIntFunction<D> hashFunction,
-                                    ChangeEvent<D> details);
+        abstract Node<D> removeAll(IdentityObject owner, Node<D> otherNode, int shift,
+                                   BulkChangeEvent bulkChange,
+                                   BiFunction<D, D, D> updateFunction,
+                                   BiPredicate<D, D> equalsFunction,
+                                   ToIntFunction<D> hashFunction,
+                                   ChangeEvent<D> details);
 
         /**
          * Retains data elements in this trie that are also in the other trie - removes the rest.
@@ -376,26 +390,13 @@ class ChampTrie {
          * @param details        the change event for single elements
          * @return the updated trie
          */
-         abstract Node<D> retainAll(IdentityObject owner, Node<D> otherNode, int shift,
-                                    BulkChangeEvent bulkChange,
-                                    BiFunction<D, D, D> updateFunction,
-                                    BiPredicate<D, D> equalsFunction,
-                                    ToIntFunction<D> hashFunction,
-                                    ChangeEvent<D> details);
-
-        /**
-         * Retains data elements in this trie for which the provided predicate returns true.
-         *
-         * @param owner
-         * @param predicate  a predicate that returns true for data elements that should be retained
-         * @param shift      the shift of this node and the other node
-         * @param bulkChange updates the field {@link BulkChangeEvent#removed}
-         * @return the updated trie
-         */
-         abstract Node<D> filterAll(IdentityObject owner, Predicate<? super D> predicate, int shift,
-                                    BulkChangeEvent bulkChange);
-
-         abstract int calculateSize();}
+        abstract Node<D> retainAll(IdentityObject owner, Node<D> otherNode, int shift,
+                                   BulkChangeEvent bulkChange,
+                                   BiFunction<D, D, D> updateFunction,
+                                   BiPredicate<D, D> equalsFunction,
+                                   ToIntFunction<D> hashFunction,
+                                   ChangeEvent<D> details);
+    }
 
     /**
      * Represents a bitmap-indexed node in a CHAMP trie.
@@ -420,12 +421,12 @@ class ChampTrie {
     static class BitmapIndexedNode<D> extends Node<D> {
         static final BitmapIndexedNode<?> EMPTY_NODE = NodeFactory.newBitmapIndexedNode(null, (0), (0), new Object[]{});
 
-         final Object  [] mixed;
+        final Object[] mixed;
         private final int nodeMap;
         private final int dataMap;
 
-         BitmapIndexedNode(int nodeMap,
-                           int dataMap, Object  [] mixed) {
+        BitmapIndexedNode(int nodeMap,
+                          int dataMap, Object[] mixed) {
             this.nodeMap = nodeMap;
             this.dataMap = dataMap;
             this.mixed = mixed;
@@ -433,20 +434,29 @@ class ChampTrie {
         }
 
         @SuppressWarnings("unchecked")
-         static <K> BitmapIndexedNode<K> emptyNode() {
+        static <K> BitmapIndexedNode<K> emptyNode() {
             return (BitmapIndexedNode<K>) EMPTY_NODE;
         }
 
-         BitmapIndexedNode<D> copyAndInsertData(IdentityObject owner, int bitpos,
-                                                D data) {
+        int calculateSize() {
+            int size = dataArity();
+            for (int i = 0, n = nodeArity(); i < n; i++) {
+                Node<D> node = getNode(i);
+                size += node.calculateSize();
+            }
+            return size;
+        }
+
+        BitmapIndexedNode<D> copyAndInsertData(IdentityObject owner, int bitpos,
+                                               D data) {
             int idx = dataIndex(bitpos);
             Object[] dst = ChampListHelper.copyComponentAdd(this.mixed, idx, 1);
             dst[idx] = data;
             return NodeFactory.newBitmapIndexedNode(owner, nodeMap, dataMap | bitpos, dst);
         }
 
-         BitmapIndexedNode<D> copyAndMigrateFromDataToNode(IdentityObject owner,
-                                                           int bitpos, Node<D> node) {
+        BitmapIndexedNode<D> copyAndMigrateFromDataToNode(IdentityObject owner,
+                                                          int bitpos, Node<D> node) {
 
             int idxOld = dataIndex(bitpos);
             int idxNew = this.mixed.length - 1 - nodeIndex(bitpos);
@@ -463,8 +473,8 @@ class ChampTrie {
             return NodeFactory.newBitmapIndexedNode(owner, nodeMap | bitpos, dataMap ^ bitpos, dst);
         }
 
-         BitmapIndexedNode<D> copyAndMigrateFromNodeToData(IdentityObject owner,
-                                                           int bitpos, Node<D> node) {
+        BitmapIndexedNode<D> copyAndMigrateFromNodeToData(IdentityObject owner,
+                                                          int bitpos, Node<D> node) {
             int idxOld = this.mixed.length - 1 - nodeIndex(bitpos);
             int idxNew = dataIndex(bitpos);
 
@@ -480,8 +490,17 @@ class ChampTrie {
             return NodeFactory.newBitmapIndexedNode(owner, nodeMap ^ bitpos, dataMap | bitpos, dst);
         }
 
-         BitmapIndexedNode<D> copyAndSetNode(IdentityObject owner, int bitpos,
-                                             Node<D> node) {
+        private BitmapIndexedNode<D> copyAndSetData(IdentityObject owner, int dataIndex, D updatedData) {
+            if (isAllowedToUpdate(owner)) {
+                this.mixed[dataIndex] = updatedData;
+                return this;
+            }
+            Object[] newMixed = ChampListHelper.copySet(this.mixed, dataIndex, updatedData);
+            return NodeFactory.newBitmapIndexedNode(owner, nodeMap, dataMap, newMixed);
+        }
+
+        BitmapIndexedNode<D> copyAndSetNode(IdentityObject owner, int bitpos,
+                                            Node<D> node) {
 
             int idx = this.mixed.length - 1 - nodeIndex(bitpos);
             if (isAllowedToUpdate(owner)) {
@@ -504,17 +523,13 @@ class ChampTrie {
             return Integer.bitCount(dataMap & (bitpos - 1));
         }
 
-        int index(int map, int bitpos) {
-            return Integer.bitCount(map & (bitpos - 1));
-        }
-
         int dataMap() {
             return dataMap;
         }
 
         @SuppressWarnings("unchecked")
         @Override
-         boolean equivalent( Object other) {
+        boolean equivalent(Object other) {
             if (this == other) {
                 return true;
             }
@@ -527,13 +542,46 @@ class ChampTrie {
                     && dataMap() == that.dataMap()
                     && ChampListHelper.arrayEquals(mixed, 0, splitAt, thatNodes, 0, splitAt)
                     && ChampListHelper.arrayEquals(mixed, splitAt, mixed.length, thatNodes, splitAt, thatNodes.length,
-                    (a, b) -> ((Node<D>) a).equivalent(b) );
+                    (a, b) -> ((Node<D>) a).equivalent(b));
         }
 
+        @Override
+        BitmapIndexedNode<D> filterAll(IdentityObject owner, Predicate<? super D> predicate, int shift, BulkChangeEvent bulkChange) {
+            int newBitMap = nodeMap | dataMap;
+            Object[] buffer = new Object[Integer.bitCount(newBitMap)];
+            int newDataMap = this.dataMap;
+            int newNodeMap = this.nodeMap;
+            for (int mapToDo = newBitMap; mapToDo != 0; mapToDo ^= Integer.lowestOneBit(mapToDo)) {
+                int mask = Integer.numberOfTrailingZeros(mapToDo);
+                int bitpos = bitpos(mask);
+                boolean thisIsNode = (this.nodeMap & bitpos) != 0;
+                if (thisIsNode) {
+                    Node<D> thisNode = this.getNode(this.nodeIndex(bitpos));
+                    Node<D> result = thisNode.filterAll(owner, predicate, shift + BIT_PARTITION_SIZE, bulkChange);
+                    if (result.isNodeEmpty()) {
+                        newNodeMap ^= bitpos;
+                    } else if (result.hasMany()) {
+                        buffer[buffer.length - 1 - index(newNodeMap, bitpos)] = result;
+                    } else {
+                        newNodeMap ^= bitpos;
+                        newDataMap ^= bitpos;
+                        buffer[index(newDataMap, bitpos)] = result.getData(0);
+                    }
+                } else {
+                    D thisData = this.getData(this.dataIndex(bitpos));
+                    if (predicate.test(thisData)) {
+                        buffer[index(newDataMap, bitpos)] = thisData;
+                    } else {
+                        newDataMap ^= bitpos;
+                        bulkChange.removed++;
+                    }
+                }
+            }
+            return newCroppedBitmapIndexedNode(buffer, newDataMap, newNodeMap);
+        }
 
         @Override
-
-         Object find(D key, int dataHash, int shift,  BiPredicate<D, D> equalsFunction) {
+        Object find(D key, int dataHash, int shift, BiPredicate<D, D> equalsFunction) {
             int bitpos = bitpos(mask(dataHash, shift));
             if ((nodeMap & bitpos) != 0) {
                 return getNode(nodeIndex(bitpos)).find(key, dataHash, shift + BIT_PARTITION_SIZE, equalsFunction);
@@ -547,14 +595,11 @@ class ChampTrie {
             return NO_DATA;
         }
 
-
         @Override
         @SuppressWarnings("unchecked")
-
         D getData(int index) {
             return (D) mixed[index];
         }
-
 
         @Override
         @SuppressWarnings("unchecked")
@@ -577,6 +622,23 @@ class ChampTrie {
             return nodeMap != 0;
         }
 
+        int index(int map, int bitpos) {
+            return Integer.bitCount(map & (bitpos - 1));
+        }
+
+        private BitmapIndexedNode<D> newCroppedBitmapIndexedNode(Object[] buffer, int newDataMap, int newNodeMap) {
+            int newLength = Integer.bitCount(newNodeMap | newDataMap);
+            if (newLength != buffer.length) {
+                Object[] temp = buffer;
+                buffer = new Object[newLength];
+                int dataCount = Integer.bitCount(newDataMap);
+                int nodeCount = Integer.bitCount(newNodeMap);
+                System.arraycopy(temp, 0, buffer, 0, dataCount);
+                System.arraycopy(temp, temp.length - nodeCount, buffer, dataCount, nodeCount);
+            }
+            return new BitmapIndexedNode<>(newNodeMap, newDataMap, buffer);
+        }
+
         @Override
         int nodeArity() {
             return Integer.bitCount(nodeMap);
@@ -586,61 +648,8 @@ class ChampTrie {
             return Integer.bitCount(nodeMap & (bitpos - 1));
         }
 
-         int nodeMap() {
+        int nodeMap() {
             return nodeMap;
-        }
-
-        @Override
-        BitmapIndexedNode<D> remove(IdentityObject owner,
-                                    D data,
-                                    int dataHash, int shift,
-                                    ChangeEvent<D> details, BiPredicate<D, D> equalsFunction) {
-            int mask = mask(dataHash, shift);
-            int bitpos = bitpos(mask);
-            if ((dataMap & bitpos) != 0) {
-                return removeData(owner, data, dataHash, shift, details, bitpos, equalsFunction);
-            }
-            if ((nodeMap & bitpos) != 0) {
-                return removeSubNode(owner, data, dataHash, shift, details, bitpos, equalsFunction);
-            }
-            return this;
-        }
-
-        private BitmapIndexedNode<D> removeData(IdentityObject owner, D data, int dataHash, int shift, ChangeEvent<D> details, int bitpos, BiPredicate<D, D> equalsFunction) {
-            int dataIndex = dataIndex(bitpos);
-            int entryLength = 1;
-            if (!equalsFunction.test(getData(dataIndex), data)) {
-                return this;
-            }
-            D currentVal = getData(dataIndex);
-            details.setRemoved(currentVal);
-            if (dataArity() == 2 && !hasNodes()) {
-                int newDataMap =
-                        (shift == 0) ? (dataMap ^ bitpos) : bitpos(mask(dataHash, 0));
-                Object[] nodes = {getData(dataIndex ^ 1)};
-                return NodeFactory.newBitmapIndexedNode(owner, 0, newDataMap, nodes);
-            }
-            int idx = dataIndex * entryLength;
-            Object[] dst = ChampListHelper.copyComponentRemove(this.mixed, idx, entryLength);
-            return NodeFactory.newBitmapIndexedNode(owner, nodeMap, dataMap ^ bitpos, dst);
-        }
-
-        private BitmapIndexedNode<D> removeSubNode(IdentityObject owner, D data, int dataHash, int shift,
-                                                   ChangeEvent<D> details,
-                                                   int bitpos, BiPredicate<D, D> equalsFunction) {
-            Node<D> subNode = getNode(nodeIndex(bitpos));
-            Node<D> updatedSubNode =
-                    subNode.remove(owner, data, dataHash, shift + BIT_PARTITION_SIZE, details, equalsFunction);
-            if (subNode == updatedSubNode) {
-                return this;
-            }
-            if (!updatedSubNode.hasNodes() && updatedSubNode.hasDataArityOne()) {
-                if (!hasData() && nodeArity() == 1) {
-                    return (BitmapIndexedNode<D>) updatedSubNode;
-                }
-                return copyAndMigrateFromNodeToData(owner, bitpos, updatedSubNode);
-            }
-            return copyAndSetNode(owner, bitpos, updatedSubNode);
         }
 
         @Override
@@ -680,17 +689,6 @@ class ChampTrie {
             details.setAdded(newData);
             return copyAndInsertData(owner, bitpos, newData);
         }
-
-
-        private BitmapIndexedNode<D> copyAndSetData(IdentityObject owner, int dataIndex, D updatedData) {
-            if (isAllowedToUpdate(owner)) {
-                this.mixed[dataIndex] = updatedData;
-                return this;
-            }
-            Object[] newMixed = ChampListHelper.copySet(this.mixed, dataIndex, updatedData);
-            return NodeFactory.newBitmapIndexedNode(owner, nodeMap, dataMap, newMixed);
-        }
-
 
         @SuppressWarnings("unchecked")
         @Override
@@ -784,6 +782,22 @@ class ChampTrie {
         }
 
         @Override
+        BitmapIndexedNode<D> remove(IdentityObject owner,
+                                    D data,
+                                    int dataHash, int shift,
+                                    ChangeEvent<D> details, BiPredicate<D, D> equalsFunction) {
+            int mask = mask(dataHash, shift);
+            int bitpos = bitpos(mask);
+            if ((dataMap & bitpos) != 0) {
+                return removeData(owner, data, dataHash, shift, details, bitpos, equalsFunction);
+            }
+            if ((nodeMap & bitpos) != 0) {
+                return removeSubNode(owner, data, dataHash, shift, details, bitpos, equalsFunction);
+            }
+            return this;
+        }
+
+        @Override
         BitmapIndexedNode<D> removeAll(IdentityObject owner, Node<D> other, int shift, BulkChangeEvent bulkChange, BiFunction<D, D, D> updateFunction, BiPredicate<D, D> equalsFunction, ToIntFunction<D> hashFunction, ChangeEvent<D> details) {
             BitmapIndexedNode<D> that = (BitmapIndexedNode<D>) other;
             if (this == that) {
@@ -872,18 +886,41 @@ class ChampTrie {
             return newCroppedBitmapIndexedNode(buffer, newDataMap, newNodeMap);
         }
 
-
-        private BitmapIndexedNode<D> newCroppedBitmapIndexedNode(Object[] buffer, int newDataMap, int newNodeMap) {
-            int newLength = Integer.bitCount(newNodeMap | newDataMap);
-            if (newLength != buffer.length) {
-                Object[] temp = buffer;
-                buffer = new Object[newLength];
-                int dataCount = Integer.bitCount(newDataMap);
-                int nodeCount = Integer.bitCount(newNodeMap);
-                System.arraycopy(temp, 0, buffer, 0, dataCount);
-                System.arraycopy(temp, temp.length - nodeCount, buffer, dataCount, nodeCount);
+        private BitmapIndexedNode<D> removeData(IdentityObject owner, D data, int dataHash, int shift, ChangeEvent<D> details, int bitpos, BiPredicate<D, D> equalsFunction) {
+            int dataIndex = dataIndex(bitpos);
+            int entryLength = 1;
+            if (!equalsFunction.test(getData(dataIndex), data)) {
+                return this;
             }
-            return new BitmapIndexedNode<>(newNodeMap, newDataMap, buffer);
+            D currentVal = getData(dataIndex);
+            details.setRemoved(currentVal);
+            if (dataArity() == 2 && !hasNodes()) {
+                int newDataMap =
+                        (shift == 0) ? (dataMap ^ bitpos) : bitpos(mask(dataHash, 0));
+                Object[] nodes = {getData(dataIndex ^ 1)};
+                return NodeFactory.newBitmapIndexedNode(owner, 0, newDataMap, nodes);
+            }
+            int idx = dataIndex * entryLength;
+            Object[] dst = ChampListHelper.copyComponentRemove(this.mixed, idx, entryLength);
+            return NodeFactory.newBitmapIndexedNode(owner, nodeMap, dataMap ^ bitpos, dst);
+        }
+
+        private BitmapIndexedNode<D> removeSubNode(IdentityObject owner, D data, int dataHash, int shift,
+                                                   ChangeEvent<D> details,
+                                                   int bitpos, BiPredicate<D, D> equalsFunction) {
+            Node<D> subNode = getNode(nodeIndex(bitpos));
+            Node<D> updatedSubNode =
+                    subNode.remove(owner, data, dataHash, shift + BIT_PARTITION_SIZE, details, equalsFunction);
+            if (subNode == updatedSubNode) {
+                return this;
+            }
+            if (!updatedSubNode.hasNodes() && updatedSubNode.hasDataArityOne()) {
+                if (!hasData() && nodeArity() == 1) {
+                    return (BitmapIndexedNode<D>) updatedSubNode;
+                }
+                return copyAndMigrateFromNodeToData(owner, bitpos, updatedSubNode);
+            }
+            return copyAndSetNode(owner, bitpos, updatedSubNode);
         }
 
         @Override
@@ -972,50 +1009,6 @@ class ChampTrie {
             }
             return newCroppedBitmapIndexedNode(buffer, newDataMap, newNodeMap);
         }
-
-        @Override
-        BitmapIndexedNode<D> filterAll(IdentityObject owner, Predicate<? super D> predicate, int shift, BulkChangeEvent bulkChange) {
-            int newBitMap = nodeMap | dataMap;
-            Object[] buffer = new Object[Integer.bitCount(newBitMap)];
-            int newDataMap = this.dataMap;
-            int newNodeMap = this.nodeMap;
-            for (int mapToDo = newBitMap; mapToDo != 0; mapToDo ^= Integer.lowestOneBit(mapToDo)) {
-                int mask = Integer.numberOfTrailingZeros(mapToDo);
-                int bitpos = bitpos(mask);
-                boolean thisIsNode = (this.nodeMap & bitpos) != 0;
-                if (thisIsNode) {
-                    Node<D> thisNode = this.getNode(this.nodeIndex(bitpos));
-                    Node<D> result = thisNode.filterAll(owner, predicate, shift + BIT_PARTITION_SIZE, bulkChange);
-                    if (result.isNodeEmpty()) {
-                        newNodeMap ^= bitpos;
-                    } else if (result.hasMany()) {
-                        buffer[buffer.length - 1 - index(newNodeMap, bitpos)] = result;
-                    } else {
-                        newNodeMap ^= bitpos;
-                        newDataMap ^= bitpos;
-                        buffer[index(newDataMap, bitpos)] = result.getData(0);
-                    }
-                } else {
-                    D thisData = this.getData(this.dataIndex(bitpos));
-                    if (predicate.test(thisData)) {
-                        buffer[index(newDataMap, bitpos)] = thisData;
-                    } else {
-                        newDataMap ^= bitpos;
-                        bulkChange.removed++;
-                    }
-                }
-            }
-            return newCroppedBitmapIndexedNode(buffer, newDataMap, newNodeMap);
-        }
-
-         int calculateSize() {
-            int size = dataArity();
-            for (int i = 0, n = nodeArity(); i < n; i++) {
-                Node<D> node = getNode(i);
-                size += node.calculateSize();
-            }
-            return size;
-        }
     }
 
     /**
@@ -1054,13 +1047,13 @@ class ChampTrie {
         }
 
         @Override
-        int dataArity() {
-            return data.length;
+        int calculateSize() {
+            return dataArity();
         }
 
         @Override
-        boolean hasDataArityOne() {
-            return false;
+        int dataArity() {
+            return data.length;
         }
 
         @SuppressWarnings("unchecked")
@@ -1100,6 +1093,25 @@ class ChampTrie {
 
         @SuppressWarnings("unchecked")
         @Override
+        Node<D> filterAll(IdentityObject owner, Predicate<? super D> predicate, int shift, BulkChangeEvent bulkChange) {
+            final int thisSize = this.dataArity();
+            int resultSize = 0;
+            Object[] buffer = new Object[thisSize];
+            Object[] thisArray = this.data;
+            outer:
+            for (int i = 0; i < thisSize; i++) {
+                D thisData = (D) thisArray[i];
+                if (predicate.test(thisData)) {
+                    buffer[resultSize++] = thisData;
+                } else {
+                    bulkChange.removed++;
+                }
+            }
+            return newCroppedHashCollisionNode(thisSize != resultSize, buffer, resultSize);
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
         Object find(D key, int dataHash, int shift, BiPredicate<D, D> equalsFunction) {
             for (Object entry : data) {
                 if (equalsFunction.test(key, (D) entry)) {
@@ -1120,10 +1132,14 @@ class ChampTrie {
             throw new IllegalStateException("Is leaf node.");
         }
 
-
         @Override
         boolean hasData() {
             return data.length > 0;
+        }
+
+        @Override
+        boolean hasDataArityOne() {
+            return false;
         }
 
         @Override
@@ -1131,40 +1147,19 @@ class ChampTrie {
             return false;
         }
 
+        private HashCollisionNode<D> newCroppedHashCollisionNode(boolean changed, Object[] buffer, int size) {
+            if (changed) {
+                if (buffer.length != size) {
+                    buffer = Arrays.copyOf(buffer, size);
+                }
+                return new HashCollisionNode<>(hash, buffer);
+            }
+            return this;
+        }
+
         @Override
         int nodeArity() {
             return 0;
-        }
-
-
-        @SuppressWarnings("unchecked")
-        @Override
-        Node<D> remove(IdentityObject owner, D data,
-                       int dataHash, int shift, ChangeEvent<D> details, BiPredicate<D, D> equalsFunction) {
-            for (int idx = 0, i = 0; i < this.data.length; i += 1, idx++) {
-                if (equalsFunction.test((D) this.data[i], data)) {
-                    @SuppressWarnings("unchecked") D currentVal = (D) this.data[i];
-                    details.setRemoved(currentVal);
-
-                    if (this.data.length == 1) {
-                        return BitmapIndexedNode.emptyNode();
-                    } else if (this.data.length == 2) {
-                        // Create root node with singleton element.
-                        // This node will either be the new root
-                        // returned, or be unwrapped and inlined.
-                        return NodeFactory.newBitmapIndexedNode(owner, 0, bitpos(mask(dataHash, 0)),
-                                new Object[]{getData(idx ^ 1)});
-                    }
-                    // copy keys and remove 1 element at position idx
-                    Object[] entriesNew = ChampListHelper.copyComponentRemove(this.data, idx, 1);
-                    if (isAllowedToUpdate(owner)) {
-                        this.data = entriesNew;
-                        return this;
-                    }
-                    return NodeFactory.newHashCollisionNode(owner, dataHash, entriesNew);
-                }
-            }
-            return this;
         }
 
         @SuppressWarnings("unchecked")
@@ -1202,11 +1197,6 @@ class ChampTrie {
                 return this;
             }
             return NodeFactory.newHashCollisionNode(owner, dataHash, entriesNew);
-        }
-
-        @Override
-         int calculateSize() {
-            return dataArity();
         }
 
         @SuppressWarnings("unchecked")
@@ -1254,6 +1244,36 @@ class ChampTrie {
 
         @SuppressWarnings("unchecked")
         @Override
+        Node<D> remove(IdentityObject owner, D data,
+                       int dataHash, int shift, ChangeEvent<D> details, BiPredicate<D, D> equalsFunction) {
+            for (int idx = 0, i = 0; i < this.data.length; i += 1, idx++) {
+                if (equalsFunction.test((D) this.data[i], data)) {
+                    @SuppressWarnings("unchecked") D currentVal = (D) this.data[i];
+                    details.setRemoved(currentVal);
+
+                    if (this.data.length == 1) {
+                        return BitmapIndexedNode.emptyNode();
+                    } else if (this.data.length == 2) {
+                        // Create root node with singleton element.
+                        // This node will either be the new root
+                        // returned, or be unwrapped and inlined.
+                        return NodeFactory.newBitmapIndexedNode(owner, 0, bitpos(mask(dataHash, 0)),
+                                new Object[]{getData(idx ^ 1)});
+                    }
+                    // copy keys and remove 1 element at position idx
+                    Object[] entriesNew = ChampListHelper.copyComponentRemove(this.data, idx, 1);
+                    if (isAllowedToUpdate(owner)) {
+                        this.data = entriesNew;
+                        return this;
+                    }
+                    return NodeFactory.newHashCollisionNode(owner, dataHash, entriesNew);
+                }
+            }
+            return this;
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
         Node<D> removeAll(IdentityObject owner, Node<D> otherNode, int shift, BulkChangeEvent bulkChange, BiFunction<D, D, D> updateFunction, BiPredicate<D, D> equalsFunction, ToIntFunction<D> hashFunction, ChangeEvent<D> details) {
             if (otherNode == this) {
                 bulkChange.removed += dataArity();
@@ -1287,17 +1307,6 @@ class ChampTrie {
                 }
             }
             return newCroppedHashCollisionNode(thisSize != resultSize, buffer, resultSize);
-        }
-
-
-        private HashCollisionNode<D> newCroppedHashCollisionNode(boolean changed, Object[] buffer, int size) {
-            if (changed) {
-                if (buffer.length != size) {
-                    buffer = Arrays.copyOf(buffer, size);
-                }
-                return new HashCollisionNode<>(hash, buffer);
-            }
-            return this;
         }
 
         @SuppressWarnings("unchecked")
@@ -1334,25 +1343,6 @@ class ChampTrie {
             }
             return newCroppedHashCollisionNode(thisSize != resultSize, buffer, resultSize);
         }
-
-        @SuppressWarnings("unchecked")
-        @Override
-        Node<D> filterAll(IdentityObject owner, Predicate<? super D> predicate, int shift, BulkChangeEvent bulkChange) {
-            final int thisSize = this.dataArity();
-            int resultSize = 0;
-            Object[] buffer = new Object[thisSize];
-            Object[] thisArray = this.data;
-            outer:
-            for (int i = 0; i < thisSize; i++) {
-                D thisData = (D) thisArray[i];
-                if (predicate.test(thisData)) {
-                    buffer[resultSize++] = thisData;
-                } else {
-                    bulkChange.removed++;
-                }
-            }
-            return newCroppedHashCollisionNode(thisSize != resultSize, buffer, resultSize);
-        }
     }
 
     /**
@@ -1366,13 +1356,14 @@ class ChampTrie {
      *      <br>Copyright (c) Michael Steindorfer. <a href="https://github.com/usethesource/capsule/blob/3856cd65fa4735c94bcfa94ec9ecf408429b54f4/LICENSE">BSD-2-Clause License</a></dt>
      *      <dd><a href="https://github.com/usethesource/capsule">github.com</a>
      * </dl>
+     *
      * @param <K> the key type
      */
     static class MutableBitmapIndexedNode<K> extends BitmapIndexedNode<K> {
         private static final long serialVersionUID = 0L;
         private final IdentityObject owner;
 
-        MutableBitmapIndexedNode(IdentityObject owner, int nodeMap, int dataMap, Object  [] nodes) {
+        MutableBitmapIndexedNode(IdentityObject owner, int nodeMap, int dataMap, Object[] nodes) {
             super(nodeMap, dataMap, nodes);
             this.owner = owner;
         }
@@ -1401,7 +1392,7 @@ class ChampTrie {
         private static final long serialVersionUID = 0L;
         private final IdentityObject owner;
 
-        MutableHashCollisionNode(IdentityObject owner, int hash, Object  [] entries) {
+        MutableHashCollisionNode(IdentityObject owner, int hash, Object[] entries) {
             super(hash, entries);
             this.owner = owner;
         }
@@ -1441,7 +1432,7 @@ class ChampTrie {
         }
 
         static <K> HashCollisionNode<K> newHashCollisionNode(
-                IdentityObject owner, int hash, Object  [] entries) {
+                IdentityObject owner, int hash, Object[] entries) {
             return owner == null
                     ? new HashCollisionNode<>(hash, entries)
                     : new MutableHashCollisionNode<>(owner, hash, entries);
@@ -1464,46 +1455,76 @@ class ChampTrie {
      */
     static class ChangeEvent<D> {
         private Type type = Type.UNCHANGED;
-        private  D oldData;
-        private  D newData;
+        private D oldData;
+        private D newData;
 
-         ChangeEvent() {
-        }
-
-         boolean isUnchanged() {
-            return type == Type.UNCHANGED;
-        }
-
-         boolean isAdded() {
-            return type== Type.ADDED;
-        }
-
-        /**
-         * Call this method to indicate that a data element has been added.
-         */
-        void setAdded( D newData) {
-            this.newData = newData;
-            this.type = Type.ADDED;
+        ChangeEvent() {
         }
 
         void found(D data) {
             this.oldData = data;
         }
 
-          D getOldData() {
-            return oldData;
-        }
-
-          D getNewData() {
+        D getNewData() {
             return newData;
         }
 
-          D getOldDataNonNull() {
+        D getNewDataNonNull() {
+            return Objects.requireNonNull(newData);
+        }
+
+        D getOldData() {
+            return oldData;
+        }
+
+        D getOldDataNonNull() {
             return Objects.requireNonNull(oldData);
         }
 
-          D getNewDataNonNull() {
-            return Objects.requireNonNull(newData);
+        boolean isAdded() {
+            return type == Type.ADDED;
+        }
+
+        /**
+         * Call this method to indicate that a data element has been added.
+         */
+        void setAdded(D newData) {
+            this.newData = newData;
+            this.type = Type.ADDED;
+        }
+
+        /**
+         * Returns true if the CHAMP trie has been modified.
+         */
+        boolean isModified() {
+            return type != Type.UNCHANGED;
+        }
+
+        /**
+         * Returns true if the data element has been replaced.
+         */
+        boolean isReplaced() {
+            return type == Type.REPLACED;
+        }
+
+        boolean isUnchanged() {
+            return type == Type.UNCHANGED;
+        }
+
+        void reset() {
+            type = Type.UNCHANGED;
+            oldData = null;
+            newData = null;
+        }
+
+        /**
+         * Call this method to indicate that an element has been removed.
+         *
+         * @param oldData the value of the removed element
+         */
+        void setRemoved(D oldData) {
+            this.oldData = oldData;
+            this.type = Type.REMOVED;
         }
 
         /**
@@ -1512,40 +1533,10 @@ class ChampTrie {
          * @param oldData the old value of the element
          * @param newData the new value of the element
          */
-        void setReplaced( D oldData,  D newData) {
+        void setReplaced(D oldData, D newData) {
             this.oldData = oldData;
             this.newData = newData;
             this.type = Type.REPLACED;
-        }
-
-        /**
-         * Call this method to indicate that an element has been removed.
-         *
-         * @param oldData the value of the removed element
-         */
-        void setRemoved( D oldData) {
-            this.oldData = oldData;
-            this.type = Type.REMOVED;
-        }
-
-        /**
-         * Returns true if the CHAMP trie has been modified.
-         */
-         boolean isModified() {
-            return type != Type.UNCHANGED;
-        }
-
-        /**
-         * Returns true if the data element has been replaced.
-         */
-         boolean isReplaced() {
-            return type == Type.REPLACED;
-        }
-
-        void reset() {
-            type = Type.UNCHANGED;
-            oldData = null;
-            newData = null;
         }
 
         enum Type {
@@ -1560,7 +1551,7 @@ class ChampTrie {
         int inBoth;
         boolean replaced;
         int removed;
-   }
+    }
 
     /**
      * An object with a unique identity within this VM.
@@ -1578,7 +1569,7 @@ class ChampTrie {
 
         private static final long serialVersionUID = 0L;
 
-         IdentityObject() {
+        IdentityObject() {
         }
     }
 
@@ -1604,6 +1595,63 @@ class ChampTrie {
 
         }
 
+        /**
+         * Checks if the specified array ranges are equal.
+         *
+         * @param a     array a
+         * @param aFrom from index in array a
+         * @param aTo   to index in array a
+         * @param b     array b
+         * @param bFrom from index in array b
+         * @param bTo   to index in array b
+         * @return true if equal
+         */
+        static boolean arrayEquals(Object[] a, int aFrom, int aTo,
+                                   Object[] b, int bFrom, int bTo) {
+            if (aTo - aFrom != bTo - bFrom) return false;
+            int bOffset = bFrom - aFrom;
+            for (int i = aFrom; i < aTo; i++) {
+                if (!Objects.equals(a[i], b[i + bOffset])) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /**
+         * Checks if the specified array ranges are equal.
+         *
+         * @param a     array a
+         * @param aFrom from index in array a
+         * @param aTo   to index in array a
+         * @param b     array b
+         * @param bFrom from index in array b
+         * @param bTo   to index in array b
+         * @return true if equal
+         */
+        static boolean arrayEquals(Object[] a, int aFrom, int aTo,
+                                   Object[] b, int bFrom, int bTo,
+                                   BiPredicate<Object, Object> c) {
+            if (aTo - aFrom != bTo - bFrom) return false;
+            int bOffset = bFrom - aFrom;
+            for (int i = aFrom; i < aTo; i++) {
+                if (!c.test(a[i], b[i + bOffset])) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /**
+         * Checks if the provided index is {@literal >= 0} and {@literal <=} size;
+         *
+         * @param index the index
+         * @param size  the size
+         * @throws IndexOutOfBoundsException if index is out of bounds
+         */
+        static void checkIndex(int index, int size) {
+            if (index < 0 || index >= size) throw new IndexOutOfBoundsException("index=" + index + " size=" + size);
+        }
 
         /**
          * Copies 'src' and inserts 'numComponents' at position 'index'.
@@ -1658,63 +1706,6 @@ class ChampTrie {
             final T[] dst = Arrays.copyOf(src, src.length);
             dst[index] = value;
             return dst;
-        }
-
-        /**
-         * Checks if the specified array ranges are equal.
-         *
-         * @param a     array a
-         * @param aFrom from index in array a
-         * @param aTo   to index in array a
-         * @param b     array b
-         * @param bFrom from index in array b
-         * @param bTo   to index in array b
-         * @return true if equal
-         */
-        static boolean arrayEquals(Object[] a, int aFrom, int aTo,
-                                   Object[] b, int bFrom, int bTo) {
-            if (aTo - aFrom != bTo - bFrom) return false;
-            int bOffset = bFrom - aFrom;
-            for (int i = aFrom; i < aTo; i++) {
-                if (!Objects.equals(a[i], b[i + bOffset])) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        /**
-         * Checks if the specified array ranges are equal.
-         *
-         * @param a     array a
-         * @param aFrom from index in array a
-         * @param aTo   to index in array a
-         * @param b     array b
-         * @param bFrom from index in array b
-         * @param bTo   to index in array b
-         * @return true if equal
-         */
-        static boolean arrayEquals(Object[] a, int aFrom, int aTo,
-                                   Object[] b, int bFrom, int bTo,
-                                   BiPredicate<Object,Object> c) {
-            if (aTo - aFrom != bTo - bFrom) return false;
-            int bOffset = bFrom - aFrom;
-            for (int i = aFrom; i < aTo; i++) {
-                if (!c.test(a[i], b[i + bOffset])) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        /**
-         * Checks if the provided index is {@literal >= 0} and {@literal <=} size;
-         *
-         * @param index the index
-         * @param size  the size
-         * @throws IndexOutOfBoundsException if index is out of bounds
-         */
-        static void checkIndex(int index, int size) {
-            if (index < 0 || index >= size) throw new IndexOutOfBoundsException("index=" + index + " size=" + size);
         }
     }
 }

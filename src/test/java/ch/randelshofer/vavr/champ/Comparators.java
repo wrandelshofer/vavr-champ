@@ -72,7 +72,9 @@ final class NaturalComparator<T> implements Comparator<T>, Serializable {
         return ((Comparable<T>) o1).compareTo(o2);
     }
 
-    /** @see Comparator#equals(Object) */
+    /**
+     * @see Comparator#equals(Object)
+     */
     @Override
     public boolean equals(Object obj) {
         return obj instanceof NaturalComparator;

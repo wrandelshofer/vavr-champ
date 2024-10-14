@@ -47,11 +47,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler21Test {
 
-    @Test
-    public void shouldSolveProblem21() {
-        assertThat(sumOfDivisors(220)).isEqualTo(1 + 2 + 4 + 5 + 10 + 11 + 20 + 22 + 44 + 55 + 110);
-        assertThat(sumOfDivisors(284)).isEqualTo(1 + 2 + 4 + 71 + 142);
-        assertThat(sumOfAmicablePairs(10000)).isEqualTo(31626);
+    private static int sumOfAmicablePairs(int n) {
+        final Function1<Integer, Integer> mSumOfDivisors = Function1.of(Euler21Test::sumOfDivisors).memoized();
+        return Stream.range(1, n)
+                .filter(x -> mSumOfDivisors.apply(mSumOfDivisors.apply(x)).intValue() == x && mSumOfDivisors.apply(x) > x)
+                .foldLeft(0, (sum, x) -> sum + x + mSumOfDivisors.apply(x));
     }
 
     private static int sumOfDivisors(int n) {
@@ -62,11 +62,11 @@ public class Euler21Test {
                 .foldLeft(0, (sum, x) -> sum + x);
     }
 
-    private static int sumOfAmicablePairs(int n) {
-        final Function1<Integer, Integer> mSumOfDivisors = Function1.of(Euler21Test::sumOfDivisors).memoized();
-        return Stream.range(1, n)
-                .filter(x -> mSumOfDivisors.apply(mSumOfDivisors.apply(x)).intValue() == x && mSumOfDivisors.apply(x) > x)
-                .foldLeft(0, (sum, x) -> sum + x + mSumOfDivisors.apply(x));
+    @Test
+    public void shouldSolveProblem21() {
+        assertThat(sumOfDivisors(220)).isEqualTo(1 + 2 + 4 + 5 + 10 + 11 + 20 + 22 + 44 + 55 + 110);
+        assertThat(sumOfDivisors(284)).isEqualTo(1 + 2 + 4 + 71 + 142);
+        assertThat(sumOfAmicablePairs(10000)).isEqualTo(31626);
     }
 
 }

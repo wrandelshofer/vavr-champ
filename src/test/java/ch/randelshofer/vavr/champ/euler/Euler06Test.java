@@ -33,6 +33,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler06Test {
 
+    private static long differenceBetweenSumOfTheSquaresAndSquareOfTheSumFrom1UpTo(int max) {
+        return squareOfSumFrom1UpTo(max) - sumOfSquaresFrom1UpTo(max);
+    }
+
+    private static long squareOfSumFrom1UpTo(int max) {
+        return (long) Math.pow(Stream.rangeClosed(1, max).sum().longValue(), 2);
+    }
+
+    private static long sumOfSquaresFrom1UpTo(int max) {
+        return Stream.rangeClosed(1, max)
+                .map(i -> (long) Math.pow(i, 2))
+                .sum().longValue();
+    }
+
     /**
      * <strong>Problem 6: Sum square difference</strong>
      * <p>
@@ -59,19 +73,5 @@ public class Euler06Test {
     public void shouldSolveProblem6() {
         assertThat(differenceBetweenSumOfTheSquaresAndSquareOfTheSumFrom1UpTo(10)).isEqualTo(2640L);
         assertThat(differenceBetweenSumOfTheSquaresAndSquareOfTheSumFrom1UpTo(100)).isEqualTo(25164150L);
-    }
-
-    private static long differenceBetweenSumOfTheSquaresAndSquareOfTheSumFrom1UpTo(int max) {
-        return squareOfSumFrom1UpTo(max) - sumOfSquaresFrom1UpTo(max);
-    }
-
-    private static long squareOfSumFrom1UpTo(int max) {
-        return (long) Math.pow(Stream.rangeClosed(1, max).sum().longValue(), 2);
-    }
-
-    private static long sumOfSquaresFrom1UpTo(int max) {
-        return Stream.rangeClosed(1, max)
-                .map(i -> (long) Math.pow(i, 2))
-                .sum().longValue();
     }
 }

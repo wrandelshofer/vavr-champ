@@ -35,15 +35,11 @@ import io.vavr.control.Option;
 
 final class Sieve {
 
-    private Sieve() {
-    }
-
     private final static List<Function2<Integer, Integer, Option<Integer>>> RULES = List.of(
             (x, y) -> Option.of((4 * x * x) + (y * y)).filter(n -> n % 12 == 1 || n % 12 == 5),
             (x, y) -> Option.of((3 * x * x) + (y * y)).filter(n -> n % 12 == 7),
             (x, y) -> Option.of((3 * x * x) - (y * y)).filter(n -> x > y && n % 12 == 11)
     );
-
     private final static List<Function3<Set<Integer>, Integer, Integer, Set<Integer>>> STEPS = List.of(
             (sieve, limit, root) -> Stream.rangeClosed(1, root).crossProduct()
                     .foldLeft(sieve, (xs, xy) ->
@@ -55,10 +51,13 @@ final class Sieve {
                     ),
             (sieve, limit, root) -> Stream.rangeClosed(5, root)
                     .foldLeft(sieve, (xs, r) -> xs.contains(r)
-                                                ? Stream.rangeBy(r * r, limit, r * r).foldLeft(xs, Set::remove)
-                                                : xs
+                            ? Stream.rangeBy(r * r, limit, r * r).foldLeft(xs, Set::remove)
+                            : xs
                     )
     );
+
+    private Sieve() {
+    }
 
     static Set<Integer> fillSieve(int limit, Set<Integer> empty) {
         return STEPS.foldLeft(empty.add(2).add(3), (s, step) ->

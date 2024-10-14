@@ -32,6 +32,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler03Test {
 
+    private static long largestPrimeFactorOf(long val) {
+        return PrimeNumbers.primeFactors(val).max().get();
+    }
+
     /**
      * <strong>Problem 3: Largest prime factor</strong>
      * <p>
@@ -47,9 +51,5 @@ public class Euler03Test {
         assertThat(largestPrimeFactorOf(29)).isEqualTo(29);
         assertThat(largestPrimeFactorOf(13195)).isEqualTo(29);
         assertThat(largestPrimeFactorOf(600_851_475_143L)).isEqualTo(6857);
-    }
-
-    private static long largestPrimeFactorOf(long val) {
-        return PrimeNumbers.primeFactors(val).max().get();
     }
 }

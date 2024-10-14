@@ -67,26 +67,22 @@ class ChampTransience {
          * If this owner id is null, then this map does not own any nodes.
          */
 
-         ChampTrie.IdentityObject owner;
+        ChampTrie.IdentityObject owner;
 
         /**
          * The root of this CHAMP trie.
          */
-         ChampTrie.BitmapIndexedNode<D> root;
+        ChampTrie.BitmapIndexedNode<D> root;
 
         /**
          * The number of entries in this map.
          */
-         int size;
+        int size;
 
         /**
          * The number of times this map has been structurally modified.
          */
-         int modCount;
-
-        int size() {
-            return size;
-        }
+        int modCount;
 
         boolean isEmpty() {
             return size == 0;
@@ -97,6 +93,10 @@ class ChampTransience {
                 owner = new ChampTrie.IdentityObject();
             }
             return owner;
+        }
+
+        int size() {
+            return size;
         }
     }
 
@@ -114,7 +114,22 @@ class ChampTransience {
      *
      * @param <E> the element type
      */
-    abstract static class ChampAbstractTransientMap<K,V,E> extends ChampAbstractTransientCollection<E> {
+    abstract static class ChampAbstractTransientMap<K, V, E> extends ChampAbstractTransientCollection<E> {
+        abstract void clear();
+
+        abstract boolean filterAll(Predicate<Map.Entry<K, V>> predicate);
+
+        abstract V put(K key, V value);
+
+        boolean putAllTuples(Iterable<? extends Tuple2<? extends K, ? extends V>> c) {
+            boolean modified = false;
+            for (Tuple2<? extends K, ? extends V> e : c) {
+                V oldValue = put(e._1, e._2);
+                modified = modified || !Objects.equals(oldValue, e);
+            }
+            return modified;
+        }
+
         @SuppressWarnings("unchecked")
         boolean removeAll(Iterable<?> c) {
             if (isEmpty()) {
@@ -122,24 +137,13 @@ class ChampTransience {
             }
             boolean modified = false;
             for (Object key : c) {
-                ChampTrie.ChangeEvent<E> details = removeKey((K)key);
+                ChampTrie.ChangeEvent<E> details = removeKey((K) key);
                 modified |= details.isModified();
             }
             return modified;
         }
 
         abstract ChampTrie.ChangeEvent<E> removeKey(K key);
-        abstract void clear();
-        abstract V put(K key, V value);
-
-       boolean putAllTuples(Iterable<? extends Tuple2<? extends K,? extends V>> c) {
-            boolean modified = false;
-            for (Tuple2<? extends K,? extends V> e : c) {
-                V oldValue = put(e._1,e._2);
-                modified = modified || !Objects.equals(oldValue, e);
-            }
-            return modified;
-        }
 
         @SuppressWarnings("unchecked")
         boolean retainAllTuples(Iterable<? extends Tuple2<K, V>> c) {
@@ -154,17 +158,15 @@ class ChampTransience {
             if (c instanceof Collection<?>) {
                 Collection<?> that = (Collection<?>) c;
                 return filterAll(e -> that.contains(e.getKey()));
-            }else if (c instanceof Map<?, ?>) {
+            } else if (c instanceof Map<?, ?>) {
                 Map<?, ?> that = (Map<?, ?>) c;
-                return filterAll(e -> that.containsKey(e.getKey())&&Objects.equals(e.getValue(),that.get(e.getKey())));
+                return filterAll(e -> that.containsKey(e.getKey()) && Objects.equals(e.getValue(), that.get(e.getKey())));
             } else {
                 HashSet<Object> that = new HashSet<>();
-                c.forEach(t->that.add(new AbstractMap.SimpleImmutableEntry<>(t._1,t._2)));
+                c.forEach(t -> that.add(new AbstractMap.SimpleImmutableEntry<>(t._1, t._2)));
                 return filterAll(that::contains);
             }
         }
-
-        abstract boolean filterAll(Predicate<Map.Entry<K, V>> predicate);
     }
 
     /**
@@ -182,10 +184,14 @@ class ChampTransience {
      * @param <E> the element type
      * @param <D> the data type of the CHAMP trie
      */
-    abstract static class ChampAbstractTransientSet<E,D> extends ChampAbstractTransientCollection<D> {
+    abstract static class ChampAbstractTransientSet<E, D> extends ChampAbstractTransientCollection<D> {
         abstract void clear();
+
+        abstract Iterator<E> iterator();
+
         abstract boolean remove(Object o);
-        boolean removeAll( Iterable<?> c) {
+
+        boolean removeAll(Iterable<?> c) {
             if (isEmpty()) {
                 return false;
             }
@@ -200,8 +206,7 @@ class ChampTransience {
             return modified;
         }
 
-        abstract Iterator<E> iterator();
-        boolean retainAll( Iterable<?> c) {
+        boolean retainAll(Iterable<?> c) {
             if (isEmpty()) {
                 return false;
             }

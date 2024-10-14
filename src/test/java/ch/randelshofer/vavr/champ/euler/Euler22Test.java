@@ -54,12 +54,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class Euler22Test {
 
-    @Test
-    public void shouldSolveProblem22() {
-        assertThat(nameScore("COLIN", 938)).isEqualTo(49714);
-        assertThat(totalOfAllNameScores()).isEqualTo(871_198_282);
-    }
-
     private static long nameScore(String name, long position) {
         return CharSeq.of(name)
                 .map(c -> c - 'A' + 1)
@@ -74,5 +68,11 @@ public class Euler22Test {
                 .zipWithIndex()
                 .map(t -> nameScore(t._1, t._2 + 1))
                 .sum().longValue();
+    }
+
+    @Test
+    public void shouldSolveProblem22() {
+        assertThat(nameScore("COLIN", 938)).isEqualTo(49714);
+        assertThat(totalOfAllNameScores()).isEqualTo(871_198_282);
     }
 }

@@ -44,7 +44,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *             18  5  4  3 12
  *             17 16 15 14 13
  * </pre>
- *
+ * <p>
  * It can be verified that the sum of the numbers on the diagonals is 101.
  * <p>
  * What is the sum of the numbers on the diagonals in a 1001 by 1001 spiral
@@ -56,14 +56,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class Euler28Test {
 
-    @Test
-    public void shouldSolveProblem28() {
-        assertThat(sumOfDiagonalInSpiralWithSide(5)).isEqualTo(101);
-        assertThat(sumOfDiagonalInSpiralWithSide(1001)).isEqualTo(669_171_001);
-    }
-
-    private static long sumOfDiagonalInSpiralWithSide(long maxSideLength) {
-        return diagonalNumbersInSpiralWithSide(maxSideLength).sum().longValue();
+    private static Stream<Long> center() {
+        return Stream.of(1L);
     }
 
     private static Stream<Long> diagonalNumbersInSpiralWithSide(long maxSideLength) {
@@ -72,17 +66,23 @@ public class Euler28Test {
                 .flatMap(t -> t._2);
     }
 
-    private static Stream<Long> center() {
-        return Stream.of(1L);
+    private static Stream<Long> nextRoundOfCorners(long previousCorner, int currentSideLength) {
+        return Stream.iterate(previousCorner, n -> n + currentSideLength - 1)
+                .drop(1)
+                .take(4);
     }
 
     private static int nextSideLength(int currentSideLength) {
         return currentSideLength + 2;
     }
 
-    private static Stream<Long> nextRoundOfCorners(long previousCorner, int currentSideLength) {
-        return Stream.iterate(previousCorner, n -> n + currentSideLength - 1)
-                .drop(1)
-                .take(4);
+    private static long sumOfDiagonalInSpiralWithSide(long maxSideLength) {
+        return diagonalNumbersInSpiralWithSide(maxSideLength).sum().longValue();
+    }
+
+    @Test
+    public void shouldSolveProblem28() {
+        assertThat(sumOfDiagonalInSpiralWithSide(5)).isEqualTo(101);
+        assertThat(sumOfDiagonalInSpiralWithSide(1001)).isEqualTo(669_171_001);
     }
 }

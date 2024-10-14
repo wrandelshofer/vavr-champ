@@ -56,7 +56,7 @@ import static ch.randelshofer.vavr.champ.ChampTrie.BitmapIndexedNode.emptyNode;
 
 /**
  * Implements an immutable map using a Compressed Hash-Array Mapped Prefix-tree
- * (CHAMP) and a bit-mapped trie (Vector).
+ * (CHAMP) and a bit-mapped trie (BitMappedTrie).
  * <p>
  * Features:
  * <ul>
@@ -102,13 +102,13 @@ import static ch.randelshofer.vavr.champ.ChampTrie.BitmapIndexedNode.emptyNode;
  * The renumbering is why the {@code add} and {@code remove} methods are O(1)
  * only in an amortized sense.
  * <p>
- * To support iteration, we use a Vector. The Vector has the same contents
+ * To support iteration, we use a BitMappedTrie. The BitMappedTrie has the same contents
  * as the CHAMP trie. However, its elements are stored in insertion order.
  * <p>
  * If an element is removed from the CHAMP trie that is not the first or the
- * last element of the Vector, we replace its corresponding element in
- * the Vector by a tombstone. If the element is at the start or end of the Vector,
- * we remove the element and all its neighboring tombstones from the Vector.
+ * last element of the BitMappedTrie, we replace its corresponding element in
+ * the BitMappedTrie by a tombstone. If the element is at the start or end of the BitMappedTrie,
+ * we remove the element and all its neighboring tombstones from the BitMappedTrie.
  * <p>
  * A tombstone can store the number of neighboring tombstones in ascending and in descending
  * direction. We use these numbers to skip tombstones when we iterate over the vector.
@@ -118,7 +118,7 @@ import static ch.randelshofer.vavr.champ.ChampTrie.BitmapIndexedNode.emptyNode;
  * highest index.
  * <p>
  * If the number of tombstones exceeds half of the size of the collection, we renumber all
- * sequence numbers, and we create a new Vector.
+ * sequence numbers, and we create a new BitMappedTrie.
  * <p>
  * The immutable version of this set extends from the non-public class
  * {@code ChampBitmapIndexNode}. This design safes 16 bytes for every instance,
@@ -144,11 +144,10 @@ import static ch.randelshofer.vavr.champ.ChampTrie.BitmapIndexedNode.emptyNode;
  * @param <V> the value type
  */
 @SuppressWarnings("exports")
-public class SequencedChampMap<K, V>         implements io.vavr.collection.Map<K, V>, Serializable {
-        private static final long serialVersionUID = 1L;
+public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Serializable {
+    private static final long serialVersionUID = 1L;
     private static final SequencedChampMap<?, ?> EMPTY = new SequencedChampMap<>(
-            emptyNode(), Vector.empty(), 0, 0);
-private final ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, V>> root;
+            emptyNode(), BitMappedTrie.empty(), 0, 0);
     /**
      * Offset of sequence numbers to vector indices.
      *
@@ -162,12 +161,13 @@ private final ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, 
     /**
      * In this vector we store the elements in the order in which they were inserted.
      */
-    final Vector<Object> vector;
+    final BitMappedTrie<Object> vector;
+    private final ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, V>> root;
 
     SequencedChampMap(ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, V>> root,
-                      Vector<Object> vector,
+                      BitMappedTrie<Object> vector,
                       int size, int offset) {
-        this.root=root;
+        this.root = root;
         this.size = size;
         this.offset = offset;
         this.vector = Objects.requireNonNull(vector);
@@ -225,6 +225,22 @@ private final ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, 
     }
 
     /**
+     * Returns a SequencedChampMap containing tuples returned by {@code n} calls to a given Supplier {@code s}.
+     *
+     * @param <K> The key type
+     * @param <V> The value type
+     * @param n   The number of elements in the SequencedChampMap
+     * @param s   The Supplier computing element values
+     * @return A SequencedChampMap of size {@code n}, where each element contains the result supplied by {@code s}.
+     * @throws NullPointerException if {@code s} is null
+     */
+    @SuppressWarnings("unchecked")
+    public static <K, V> SequencedChampMap<K, V> fill(int n, Supplier<? extends Tuple2<? extends K, ? extends V>> s) {
+        Objects.requireNonNull(s, "s is null");
+        return ofEntries(Collections.fill(n, (Supplier<? extends Tuple2<K, V>>) s));
+    }
+
+    /**
      * Narrows a widened {@code SequencedChampMap<? extends K, ? extends V>} to {@code SequencedChampMap<K, V>}
      * by performing a type-safe cast. This is eligible because immutable/read-only
      * collections are covariant.
@@ -250,7 +266,290 @@ private final ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, 
     @SuppressWarnings("unchecked")
     public static <K, V> SequencedChampMap<K, V> of(Tuple2<? extends K, ? extends V> entry) {
         Objects.requireNonNull(entry, "entry is null");
-        return SequencedChampMap.<K,V>empty().put(entry._1,entry._2);
+        return SequencedChampMap.<K, V>empty().put(entry._1, entry._2);
+    }
+
+    /**
+     * Returns a singleton {@code SequencedChampMap}, i.e. a {@code SequencedChampMap} of one element.
+     *
+     * @param key   A singleton map key.
+     * @param value A singleton map value.
+     * @param <K>   The key type
+     * @param <V>   The value type
+     * @return A new Map containing the given entry
+     */
+    public static <K, V> SequencedChampMap<K, V> of(K key, V value) {
+        return SequencedChampMap.<K, V>empty().put(key, value);
+    }
+
+    /**
+     * Creates a SequencedChampMap of the given list of key-value pairs.
+     *
+     * @param k1  a key for the map
+     * @param v1  the value for k1
+     * @param k2  a key for the map
+     * @param v2  the value for k2
+     * @param <K> The key type
+     * @param <V> The value type
+     * @return A new Map containing the given entries
+     */
+    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2) {
+        TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K, V>();
+        t.put(k1, v1);
+        t.put(k2, v2);
+        return t.toImmutable();
+    }
+
+    /**
+     * Creates a SequencedChampMap of the given list of key-value pairs.
+     *
+     * @param k1  a key for the map
+     * @param v1  the value for k1
+     * @param k2  a key for the map
+     * @param v2  the value for k2
+     * @param k3  a key for the map
+     * @param v3  the value for k3
+     * @param <K> The key type
+     * @param <V> The value type
+     * @return A new Map containing the given entries
+     */
+    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3) {
+        TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K, V>();
+        t.put(k1, v1);
+        t.put(k2, v2);
+        t.put(k3, v3);
+        return t.toImmutable();
+    }
+
+    /**
+     * Creates a SequencedChampMap of the given list of key-value pairs.
+     *
+     * @param k1  a key for the map
+     * @param v1  the value for k1
+     * @param k2  a key for the map
+     * @param v2  the value for k2
+     * @param k3  a key for the map
+     * @param v3  the value for k3
+     * @param k4  a key for the map
+     * @param v4  the value for k4
+     * @param <K> The key type
+     * @param <V> The value type
+     * @return A new Map containing the given entries
+     */
+    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4) {
+        TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K, V>();
+        t.put(k1, v1);
+        t.put(k2, v2);
+        t.put(k3, v3);
+        t.put(k4, v4);
+        return t.toImmutable();
+    }
+
+    /**
+     * Creates a SequencedChampMap of the given list of key-value pairs.
+     *
+     * @param k1  a key for the map
+     * @param v1  the value for k1
+     * @param k2  a key for the map
+     * @param v2  the value for k2
+     * @param k3  a key for the map
+     * @param v3  the value for k3
+     * @param k4  a key for the map
+     * @param v4  the value for k4
+     * @param k5  a key for the map
+     * @param v5  the value for k5
+     * @param <K> The key type
+     * @param <V> The value type
+     * @return A new Map containing the given entries
+     */
+    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5) {
+        TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K, V>();
+        t.put(k1, v1);
+        t.put(k2, v2);
+        t.put(k3, v3);
+        t.put(k4, v4);
+        t.put(k5, v5);
+        return t.toImmutable();
+    }
+
+    /**
+     * Creates a SequencedChampMap of the given list of key-value pairs.
+     *
+     * @param k1  a key for the map
+     * @param v1  the value for k1
+     * @param k2  a key for the map
+     * @param v2  the value for k2
+     * @param k3  a key for the map
+     * @param v3  the value for k3
+     * @param k4  a key for the map
+     * @param v4  the value for k4
+     * @param k5  a key for the map
+     * @param v5  the value for k5
+     * @param k6  a key for the map
+     * @param v6  the value for k6
+     * @param <K> The key type
+     * @param <V> The value type
+     * @return A new Map containing the given entries
+     */
+    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5, K k6, V v6) {
+        TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K, V>();
+        t.put(k1, v1);
+        t.put(k2, v2);
+        t.put(k3, v3);
+        t.put(k4, v4);
+        t.put(k5, v5);
+        t.put(k6, v6);
+        return t.toImmutable();
+    }
+
+    /**
+     * Creates a SequencedChampMap of the given list of key-value pairs.
+     *
+     * @param k1  a key for the map
+     * @param v1  the value for k1
+     * @param k2  a key for the map
+     * @param v2  the value for k2
+     * @param k3  a key for the map
+     * @param v3  the value for k3
+     * @param k4  a key for the map
+     * @param v4  the value for k4
+     * @param k5  a key for the map
+     * @param v5  the value for k5
+     * @param k6  a key for the map
+     * @param v6  the value for k6
+     * @param k7  a key for the map
+     * @param v7  the value for k7
+     * @param <K> The key type
+     * @param <V> The value type
+     * @return A new Map containing the given entries
+     */
+    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5, K k6, V v6, K k7, V v7) {
+        TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K, V>();
+        t.put(k1, v1);
+        t.put(k2, v2);
+        t.put(k3, v3);
+        t.put(k4, v4);
+        t.put(k5, v5);
+        t.put(k6, v6);
+        t.put(k7, v7);
+        return t.toImmutable();
+    }
+
+    /**
+     * Creates a SequencedChampMap of the given list of key-value pairs.
+     *
+     * @param k1  a key for the map
+     * @param v1  the value for k1
+     * @param k2  a key for the map
+     * @param v2  the value for k2
+     * @param k3  a key for the map
+     * @param v3  the value for k3
+     * @param k4  a key for the map
+     * @param v4  the value for k4
+     * @param k5  a key for the map
+     * @param v5  the value for k5
+     * @param k6  a key for the map
+     * @param v6  the value for k6
+     * @param k7  a key for the map
+     * @param v7  the value for k7
+     * @param k8  a key for the map
+     * @param v8  the value for k8
+     * @param <K> The key type
+     * @param <V> The value type
+     * @return A new Map containing the given entries
+     */
+    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5, K k6, V v6, K k7, V v7, K k8, V v8) {
+        TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K, V>();
+        t.put(k1, v1);
+        t.put(k2, v2);
+        t.put(k3, v3);
+        t.put(k4, v4);
+        t.put(k5, v5);
+        t.put(k6, v6);
+        t.put(k7, v7);
+        t.put(k8, v8);
+        return t.toImmutable();
+    }
+
+    /**
+     * Creates a SequencedChampMap of the given list of key-value pairs.
+     *
+     * @param k1  a key for the map
+     * @param v1  the value for k1
+     * @param k2  a key for the map
+     * @param v2  the value for k2
+     * @param k3  a key for the map
+     * @param v3  the value for k3
+     * @param k4  a key for the map
+     * @param v4  the value for k4
+     * @param k5  a key for the map
+     * @param v5  the value for k5
+     * @param k6  a key for the map
+     * @param v6  the value for k6
+     * @param k7  a key for the map
+     * @param v7  the value for k7
+     * @param k8  a key for the map
+     * @param v8  the value for k8
+     * @param k9  a key for the map
+     * @param v9  the value for k9
+     * @param <K> The key type
+     * @param <V> The value type
+     * @return A new Map containing the given entries
+     */
+    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5, K k6, V v6, K k7, V v7, K k8, V v8, K k9, V v9) {
+        TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K, V>();
+        t.put(k1, v1);
+        t.put(k2, v2);
+        t.put(k3, v3);
+        t.put(k4, v4);
+        t.put(k5, v5);
+        t.put(k6, v6);
+        t.put(k7, v7);
+        t.put(k8, v8);
+        t.put(k9, v9);
+        return t.toImmutable();
+    }
+
+    /**
+     * Creates a SequencedChampMap of the given list of key-value pairs.
+     *
+     * @param k1  a key for the map
+     * @param v1  the value for k1
+     * @param k2  a key for the map
+     * @param v2  the value for k2
+     * @param k3  a key for the map
+     * @param v3  the value for k3
+     * @param k4  a key for the map
+     * @param v4  the value for k4
+     * @param k5  a key for the map
+     * @param v5  the value for k5
+     * @param k6  a key for the map
+     * @param v6  the value for k6
+     * @param k7  a key for the map
+     * @param v7  the value for k7
+     * @param k8  a key for the map
+     * @param v8  the value for k8
+     * @param k9  a key for the map
+     * @param v9  the value for k9
+     * @param k10 a key for the map
+     * @param v10 the value for k10
+     * @param <K> The key type
+     * @param <V> The value type
+     * @return A new Map containing the given entries
+     */
+    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5, K k6, V v6, K k7, V v7, K k8, V v8, K k9, V v9, K k10, V v10) {
+        TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K, V>();
+        t.put(k1, v1);
+        t.put(k2, v2);
+        t.put(k3, v3);
+        t.put(k4, v4);
+        t.put(k5, v5);
+        t.put(k6, v6);
+        t.put(k7, v7);
+        t.put(k8, v8);
+        t.put(k9, v9);
+        t.put(k10, v10);
+        return t.toImmutable();
     }
 
     /**
@@ -301,322 +600,6 @@ private final ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, 
     }
 
     /**
-     * Returns a singleton {@code SequencedChampMap}, i.e. a {@code SequencedChampMap} of one element.
-     *
-     * @param key   A singleton map key.
-     * @param value A singleton map value.
-     * @param <K>   The key type
-     * @param <V>   The value type
-     * @return A new Map containing the given entry
-     */
-    public static <K, V> SequencedChampMap<K, V> of(K key, V value) {
-        return SequencedChampMap.<K,V>empty().put(key,value);
-    }
-
-    /**
-     * Creates a SequencedChampMap of the given list of key-value pairs.
-     *
-     * @param k1  a key for the map
-     * @param v1  the value for k1
-     * @param k2  a key for the map
-     * @param v2  the value for k2
-     * @param <K> The key type
-     * @param <V> The value type
-     * @return A new Map containing the given entries
-     */
-    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2) {
-        TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K,V>();
-        t.put(k1,v1);
-        t.put(k2,v2);
-        return t.toImmutable();
-    }
-
-    /**
-     * Creates a SequencedChampMap of the given list of key-value pairs.
-     *
-     * @param k1  a key for the map
-     * @param v1  the value for k1
-     * @param k2  a key for the map
-     * @param v2  the value for k2
-     * @param k3  a key for the map
-     * @param v3  the value for k3
-     * @param <K> The key type
-     * @param <V> The value type
-     * @return A new Map containing the given entries
-     */
-    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3) {
-        TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K,V>();
-        t.put(k1,v1);
-        t.put(k2,v2);
-        t.put(k3,v3);
-        return t.toImmutable();
-    }
-
-    /**
-     * Creates a SequencedChampMap of the given list of key-value pairs.
-     *
-     * @param k1  a key for the map
-     * @param v1  the value for k1
-     * @param k2  a key for the map
-     * @param v2  the value for k2
-     * @param k3  a key for the map
-     * @param v3  the value for k3
-     * @param k4  a key for the map
-     * @param v4  the value for k4
-     * @param <K> The key type
-     * @param <V> The value type
-     * @return A new Map containing the given entries
-     */
-    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4) {
-        TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K,V>();
-        t.put(k1,v1);
-        t.put(k2,v2);
-        t.put(k3,v3);
-        t.put(k4,v4);
-        return t.toImmutable();
-    }
-
-    /**
-     * Creates a SequencedChampMap of the given list of key-value pairs.
-     *
-     * @param k1  a key for the map
-     * @param v1  the value for k1
-     * @param k2  a key for the map
-     * @param v2  the value for k2
-     * @param k3  a key for the map
-     * @param v3  the value for k3
-     * @param k4  a key for the map
-     * @param v4  the value for k4
-     * @param k5  a key for the map
-     * @param v5  the value for k5
-     * @param <K> The key type
-     * @param <V> The value type
-     * @return A new Map containing the given entries
-     */
-    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5) {
-        TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K,V>();
-        t.put(k1,v1);
-        t.put(k2,v2);
-        t.put(k3,v3);
-        t.put(k4,v4);
-        t.put(k5,v5);
-        return t.toImmutable();
-    }
-
-    /**
-     * Creates a SequencedChampMap of the given list of key-value pairs.
-     *
-     * @param k1  a key for the map
-     * @param v1  the value for k1
-     * @param k2  a key for the map
-     * @param v2  the value for k2
-     * @param k3  a key for the map
-     * @param v3  the value for k3
-     * @param k4  a key for the map
-     * @param v4  the value for k4
-     * @param k5  a key for the map
-     * @param v5  the value for k5
-     * @param k6  a key for the map
-     * @param v6  the value for k6
-     * @param <K> The key type
-     * @param <V> The value type
-     * @return A new Map containing the given entries
-     */
-    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5, K k6, V v6) {
-        TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K,V>();
-        t.put(k1,v1);
-        t.put(k2,v2);
-        t.put(k3,v3);
-        t.put(k4,v4);
-        t.put(k5,v5);
-        t.put(k6,v6);
-        return t.toImmutable();
-    }
-
-    /**
-     * Creates a SequencedChampMap of the given list of key-value pairs.
-     *
-     * @param k1  a key for the map
-     * @param v1  the value for k1
-     * @param k2  a key for the map
-     * @param v2  the value for k2
-     * @param k3  a key for the map
-     * @param v3  the value for k3
-     * @param k4  a key for the map
-     * @param v4  the value for k4
-     * @param k5  a key for the map
-     * @param v5  the value for k5
-     * @param k6  a key for the map
-     * @param v6  the value for k6
-     * @param k7  a key for the map
-     * @param v7  the value for k7
-     * @param <K> The key type
-     * @param <V> The value type
-     * @return A new Map containing the given entries
-     */
-    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5, K k6, V v6, K k7, V v7) {
-        TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K,V>();
-        t.put(k1,v1);
-        t.put(k2,v2);
-        t.put(k3,v3);
-        t.put(k4,v4);
-        t.put(k5,v5);
-        t.put(k6,v6);
-        t.put(k7,v7);
-        return t.toImmutable();
-    }
-
-    /**
-     * Creates a SequencedChampMap of the given list of key-value pairs.
-     *
-     * @param k1  a key for the map
-     * @param v1  the value for k1
-     * @param k2  a key for the map
-     * @param v2  the value for k2
-     * @param k3  a key for the map
-     * @param v3  the value for k3
-     * @param k4  a key for the map
-     * @param v4  the value for k4
-     * @param k5  a key for the map
-     * @param v5  the value for k5
-     * @param k6  a key for the map
-     * @param v6  the value for k6
-     * @param k7  a key for the map
-     * @param v7  the value for k7
-     * @param k8  a key for the map
-     * @param v8  the value for k8
-     * @param <K> The key type
-     * @param <V> The value type
-     * @return A new Map containing the given entries
-     */
-    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5, K k6, V v6, K k7, V v7, K k8, V v8) {
-        TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K,V>();
-        t.put(k1,v1);
-        t.put(k2,v2);
-        t.put(k3,v3);
-        t.put(k4,v4);
-        t.put(k5,v5);
-        t.put(k6,v6);
-        t.put(k7,v7);
-        t.put(k8,v8);
-        return t.toImmutable();
-    }
-
-    /**
-     * Creates a SequencedChampMap of the given list of key-value pairs.
-     *
-     * @param k1  a key for the map
-     * @param v1  the value for k1
-     * @param k2  a key for the map
-     * @param v2  the value for k2
-     * @param k3  a key for the map
-     * @param v3  the value for k3
-     * @param k4  a key for the map
-     * @param v4  the value for k4
-     * @param k5  a key for the map
-     * @param v5  the value for k5
-     * @param k6  a key for the map
-     * @param v6  the value for k6
-     * @param k7  a key for the map
-     * @param v7  the value for k7
-     * @param k8  a key for the map
-     * @param v8  the value for k8
-     * @param k9  a key for the map
-     * @param v9  the value for k9
-     * @param <K> The key type
-     * @param <V> The value type
-     * @return A new Map containing the given entries
-     */
-    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5, K k6, V v6, K k7, V v7, K k8, V v8, K k9, V v9) {
-        TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K,V>();
-        t.put(k1,v1);
-        t.put(k2,v2);
-        t.put(k3,v3);
-        t.put(k4,v4);
-        t.put(k5,v5);
-        t.put(k6,v6);
-        t.put(k7,v7);
-        t.put(k8,v8);
-        t.put(k9,v9);
-        return t.toImmutable();
-    }
-
-    /**
-     * Creates a SequencedChampMap of the given list of key-value pairs.
-     *
-     * @param k1  a key for the map
-     * @param v1  the value for k1
-     * @param k2  a key for the map
-     * @param v2  the value for k2
-     * @param k3  a key for the map
-     * @param v3  the value for k3
-     * @param k4  a key for the map
-     * @param v4  the value for k4
-     * @param k5  a key for the map
-     * @param v5  the value for k5
-     * @param k6  a key for the map
-     * @param v6  the value for k6
-     * @param k7  a key for the map
-     * @param v7  the value for k7
-     * @param k8  a key for the map
-     * @param v8  the value for k8
-     * @param k9  a key for the map
-     * @param v9  the value for k9
-     * @param k10 a key for the map
-     * @param v10 the value for k10
-     * @param <K> The key type
-     * @param <V> The value type
-     * @return A new Map containing the given entries
-     */
-    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5, K k6, V v6, K k7, V v7, K k8, V v8, K k9, V v9, K k10, V v10) {
-        TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K,V>();
-        t.put(k1,v1);
-        t.put(k2,v2);
-        t.put(k3,v3);
-        t.put(k4,v4);
-        t.put(k5,v5);
-        t.put(k6,v6);
-        t.put(k7,v7);
-        t.put(k8,v8);
-        t.put(k9,v9);
-        t.put(k10,v10);
-        return t.toImmutable();
-    }
-
-    /**
-     * Returns a SequencedChampMap containing {@code n} values of a given Function {@code f}
-     * over a range of integer values from 0 to {@code n - 1}.
-     *
-     * @param <K> The key type
-     * @param <V> The value type
-     * @param n   The number of elements in the SequencedChampMap
-     * @param f   The Function computing element values
-     * @return A SequencedChampMap consisting of elements {@code f(0),f(1), ..., f(n - 1)}
-     * @throws NullPointerException if {@code f} is null
-     */
-    @SuppressWarnings("unchecked")
-    public static <K, V> SequencedChampMap<K, V> tabulate(int n, Function<? super Integer, ? extends Tuple2<? extends K, ? extends V>> f) {
-        Objects.requireNonNull(f, "f is null");
-        return ofEntries(Collections.tabulate(n, (Function<? super Integer, ? extends Tuple2<K, V>>) f));
-    }
-
-    /**
-     * Returns a SequencedChampMap containing tuples returned by {@code n} calls to a given Supplier {@code s}.
-     *
-     * @param <K> The key type
-     * @param <V> The value type
-     * @param n   The number of elements in the SequencedChampMap
-     * @param s   The Supplier computing element values
-     * @return A SequencedChampMap of size {@code n}, where each element contains the result supplied by {@code s}.
-     * @throws NullPointerException if {@code s} is null
-     */
-    @SuppressWarnings("unchecked")
-    public static <K, V> SequencedChampMap<K, V> fill(int n, Supplier<? extends Tuple2<? extends K, ? extends V>> s) {
-        Objects.requireNonNull(s, "s is null");
-        return ofEntries(Collections.fill(n, (Supplier<? extends Tuple2<K, V>>) s));
-    }
-
-    /**
      * Creates a SequencedChampMap of the given entries.
      *
      * @param entries Map entries
@@ -656,6 +639,23 @@ private final ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, 
         return SequencedChampMap.<K, V>empty().putAllTuples(entries);
     }
 
+    /**
+     * Returns a SequencedChampMap containing {@code n} values of a given Function {@code f}
+     * over a range of integer values from 0 to {@code n - 1}.
+     *
+     * @param <K> The key type
+     * @param <V> The value type
+     * @param n   The number of elements in the SequencedChampMap
+     * @param f   The Function computing element values
+     * @return A SequencedChampMap consisting of elements {@code f(0),f(1), ..., f(n - 1)}
+     * @throws NullPointerException if {@code f} is null
+     */
+    @SuppressWarnings("unchecked")
+    public static <K, V> SequencedChampMap<K, V> tabulate(int n, Function<? super Integer, ? extends Tuple2<? extends K, ? extends V>> f) {
+        Objects.requireNonNull(f, "f is null");
+        return ofEntries(Collections.tabulate(n, (Function<? super Integer, ? extends Tuple2<K, V>>) f));
+    }
+
     @Override
     public <K2, V2> SequencedChampMap<K2, V2> bimap(Function<? super K, ? extends K2> keyMapper, Function<? super V, ? extends V2> valueMapper) {
         Objects.requireNonNull(keyMapper, "keyMapper is null");
@@ -680,6 +680,12 @@ private final ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, 
                 ChampSequenced.ChampSequencedEntry::keyEquals) != ChampTrie.Node.NO_DATA;
     }
 
+    // We need this method to narrow the argument of `ofEntries`.
+    // If this method is static with type args <K, V>, the jdk fails to infer types at the call site.
+    private SequencedChampMap<K, V> createFromEntries(Iterable<Tuple2<K, V>> tuples) {
+        return SequencedChampMap.ofEntries(tuples);
+    }
+
     @Override
     public SequencedChampMap<K, V> distinct() {
         return Maps.distinct(this);
@@ -697,7 +703,7 @@ private final ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, 
 
     @Override
     public SequencedChampMap<K, V> drop(int n) {
-        return n<=0?this:ofEntries(iterator(n));
+        return n <= 0 ? this : ofEntries(iterator(n));
     }
 
     @Override
@@ -716,32 +722,36 @@ private final ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, 
     }
 
     @Override
-    public SequencedChampMap<K, V> filter(BiPredicate<? super K, ? super V> predicate) {
-        TransientLinkedHashMap<K, V> t = toTransient();
-        t.filterAll(e->predicate.test(e.getKey(),e.getValue()));
-        return t.root==this.root?this: t.toImmutable();
+    public boolean equals(Object o) {
+        return Collections.equals(this, o);
     }
 
+    @Override
+    public SequencedChampMap<K, V> filter(BiPredicate<? super K, ? super V> predicate) {
+        TransientLinkedHashMap<K, V> t = toTransient();
+        t.filterAll(e -> predicate.test(e.getKey(), e.getValue()));
+        return t.root == this.root ? this : t.toImmutable();
+    }
 
     @Override
     public SequencedChampMap<K, V> filter(Predicate<? super Tuple2<K, V>> predicate) {
         TransientLinkedHashMap<K, V> t = toTransient();
-        t.filterAll(e->predicate.test(new Tuple2<>(e.getKey(),e.getValue())));
-        return t.root==this.root?this: t.toImmutable();
+        t.filterAll(e -> predicate.test(new Tuple2<>(e.getKey(), e.getValue())));
+        return t.root == this.root ? this : t.toImmutable();
     }
 
     @Override
     public SequencedChampMap<K, V> filterKeys(Predicate<? super K> predicate) {
         TransientLinkedHashMap<K, V> t = toTransient();
-        t.filterAll(e->predicate.test(e.getKey()));
-        return t.root==this.root?this: t.toImmutable();
+        t.filterAll(e -> predicate.test(e.getKey()));
+        return t.root == this.root ? this : t.toImmutable();
     }
 
     @Override
     public SequencedChampMap<K, V> filterValues(Predicate<? super V> predicate) {
         TransientLinkedHashMap<K, V> t = toTransient();
-        t.filterAll(e->predicate.test(e.getValue()));
-        return t.root==this.root?this: t.toImmutable();
+        t.filterAll(e -> predicate.test(e.getValue()));
+        return t.root == this.root ? this : t.toImmutable();
     }
 
     @Override
@@ -779,6 +789,11 @@ private final ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, 
         return Maps.grouped(this, this::createFromEntries, size);
     }
 
+    @Override
+    public int hashCode() {
+        return Collections.hashUnordered(this);
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public Tuple2<K, V> head() {
@@ -811,7 +826,7 @@ private final ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, 
 
     @Override
     public boolean isEmpty() {
-        return size==0;
+        return size == 0;
     }
 
     /**
@@ -925,41 +940,54 @@ private final ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, 
         return putLast(key, value, false);
     }
 
-    private SequencedChampMap<K, V> putAllEntries(Iterable<? extends Map.Entry<? extends K, ? extends V>> c) {
-        TransientLinkedHashMap<K,V> t=toTransient();
-        t.putAllEntries(c);
-        return t.root==this.root?this: t.toImmutable();
+    @Override
+    public SequencedChampMap<K, V> put(Tuple2<? extends K, ? extends V> entry) {
+        return Maps.put(this, entry);
     }
+
+    @Override
+    public <U extends V> SequencedChampMap<K, V> put(Tuple2<? extends K, U> entry,
+                                                     BiFunction<? super V, ? super U, ? extends V> merge) {
+        return Maps.put(this, entry, merge);
+    }
+
+    private SequencedChampMap<K, V> putAllEntries(Iterable<? extends Map.Entry<? extends K, ? extends V>> c) {
+        TransientLinkedHashMap<K, V> t = toTransient();
+        t.putAllEntries(c);
+        return t.root == this.root ? this : t.toImmutable();
+    }
+
     @SuppressWarnings("unchecked")
     private SequencedChampMap<K, V> putAllTuples(Iterable<? extends Tuple2<? extends K, ? extends V>> c) {
-        if (isEmpty()&& c instanceof SequencedChampMap<?, ?>){
+        if (isEmpty() && c instanceof SequencedChampMap<?, ?>) {
             SequencedChampMap<?, ?> that = (SequencedChampMap<?, ?>) c;
-            return (SequencedChampMap<K, V>)that;
+            return (SequencedChampMap<K, V>) that;
         }
-        TransientLinkedHashMap<K,V> t=toTransient();
+        TransientLinkedHashMap<K, V> t = toTransient();
         t.putAllTuples(c);
-        return t.root==this.root?this: t.toImmutable();
+        return t.root == this.root ? this : t.toImmutable();
     }
+
     private SequencedChampMap<K, V> putLast(K key, V value, boolean moveToLast) {
         ChampTrie.ChangeEvent<ChampSequenced.ChampSequencedEntry<K, V>> details = new ChampTrie.ChangeEvent<ChampSequenced.ChampSequencedEntry<K, V>>();
         ChampSequenced.ChampSequencedEntry<K, V> newEntry = new ChampSequenced.ChampSequencedEntry<>(key, value, vector.size() - offset);
-        ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, V>> newRoot =root. put(null, newEntry,
+        ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, V>> newRoot = root.put(null, newEntry,
                 ChampSequenced.ChampSequencedEntry.keyHash(key), 0, details,
                 moveToLast ? ChampSequenced.ChampSequencedEntry::updateAndMoveToLast : ChampSequenced.ChampSequencedEntry::updateWithNewKey,
                 ChampSequenced.ChampSequencedEntry::keyEquals, ChampSequenced.ChampSequencedEntry::entryKeyHash);
         if (details.isReplaced()
                 && details.getOldDataNonNull().getSequenceNumber() == details.getNewDataNonNull().getSequenceNumber()) {
-            Vector<Object> newVector = vector.update(details.getNewDataNonNull().getSequenceNumber() - offset, details.getNewDataNonNull());
+            BitMappedTrie<Object> newVector = vector.update(details.getNewDataNonNull().getSequenceNumber() - offset, details.getNewDataNonNull());
             return new SequencedChampMap<>(newRoot, newVector, size, offset);
         }
         if (details.isModified()) {
-            Vector<Object> newVector = vector;
+            BitMappedTrie<Object> newVector = vector;
             int newOffset = offset;
             int newSize = size;
             if (details.isReplaced()) {
                 if (moveToLast) {
                     ChampSequenced.ChampSequencedEntry<K, V> oldElem = details.getOldDataNonNull();
-                    Tuple2<Vector<Object>, Integer> result = ChampSequenced.ChampSequencedData.vecRemove(newVector,  oldElem,  newOffset);
+                    Tuple2<BitMappedTrie<Object>, Integer> result = ChampSequenced.ChampSequencedData.vecRemove(newVector, oldElem, newOffset);
                     newVector = result._1;
                     newOffset = result._2;
                 }
@@ -972,29 +1000,26 @@ private final ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, 
         return this;
     }
 
-    @Override
-    public SequencedChampMap<K, V> put(Tuple2<? extends K, ? extends V> entry) {
-        return Maps.put(this, entry);
+    private Object readResolve() {
+        return isEmpty() ? EMPTY : this;
     }
 
-    @Override
-    public <U extends V> SequencedChampMap<K, V> put(Tuple2<? extends K, U> entry,
-                                                     BiFunction<? super V, ? super U, ? extends V> merge) {
-        return Maps.put(this, entry, merge);
-    }
     public SequencedChampMap<K, V> reject(Predicate<? super Tuple2<K, V>> predicate) {
         return (SequencedChampMap) Maps.reject(this, this::createFromEntries, predicate);
     }
 
     public SequencedChampMap<K, V> reject(BiPredicate<? super K, ? super V> predicate) {
-        return (SequencedChampMap)  Maps.reject(this, this::createFromEntries, predicate);
+        return (SequencedChampMap) Maps.reject(this, this::createFromEntries, predicate);
     }
+
     public SequencedChampMap<K, V> rejectKeys(Predicate<? super K> predicate) {
-        return (SequencedChampMap)  Maps.rejectKeys(this, this::createFromEntries, predicate);
+        return (SequencedChampMap) Maps.rejectKeys(this, this::createFromEntries, predicate);
     }
+
     public SequencedChampMap<K, V> rejectValues(Predicate<? super V> predicate) {
-        return (SequencedChampMap)  Maps.rejectValues(this, this::createFromEntries, predicate);
+        return (SequencedChampMap) Maps.rejectValues(this, this::createFromEntries, predicate);
     }
+
     @Override
     public SequencedChampMap<K, V> remove(K key) {
         int keyHash = ChampSequenced.ChampSequencedEntry.keyHash(key);
@@ -1004,7 +1029,7 @@ private final ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, 
                 keyHash, 0, details, ChampSequenced.ChampSequencedEntry::keyEquals);
         if (details.isModified()) {
             ChampSequenced.ChampSequencedEntry<K, V> oldElem = details.getOldDataNonNull();
-            Tuple2<Vector<Object>, Integer> result = ChampSequenced.ChampSequencedData.vecRemove(vector,  oldElem,  offset);
+            Tuple2<BitMappedTrie<Object>, Integer> result = ChampSequenced.ChampSequencedData.vecRemove(vector, oldElem, offset);
             return renumber(newRoot, result._1, size - 1, result._2);
         }
         return this;
@@ -1020,7 +1045,7 @@ private final ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, 
     public SequencedChampMap<K, V> removeAll(Iterable<? extends K> keys) {
         Objects.requireNonNull(keys, "keys is null");
         TransientLinkedHashMap<K, V> t = toTransient();
-return        t.removeAll(keys)?t.toImmutable():this;
+        return t.removeAll(keys) ? t.toImmutable() : this;
     }
 
     @Override
@@ -1037,12 +1062,12 @@ return        t.removeAll(keys)?t.toImmutable():this;
 
     private SequencedChampMap<K, V> renumber(
             ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, V>> root,
-            Vector<Object> vector,
+            BitMappedTrie<Object> vector,
             int size, int offset) {
 
         if (ChampSequenced.ChampSequencedData.vecMustRenumber(size, offset, this.vector.size())) {
             ChampTrie.IdentityObject owner = new ChampTrie.IdentityObject();
-            Tuple2<ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, V>>, Vector<Object>> result = ChampSequenced.ChampSequencedData.<ChampSequenced.ChampSequencedEntry<K, V>>vecRenumber(
+            Tuple2<ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, V>>, BitMappedTrie<Object>> result = ChampSequenced.ChampSequencedData.<ChampSequenced.ChampSequencedEntry<K, V>>vecRenumber(
                     size, root, vector, owner, ChampSequenced.ChampSequencedEntry::entryKeyHash, ChampSequenced.ChampSequencedEntry::keyEquals,
                     (e, seq) -> new ChampSequenced.ChampSequencedEntry<>(e.getKey(), e.getValue(), seq));
             return new SequencedChampMap<>(
@@ -1051,6 +1076,7 @@ return        t.removeAll(keys)?t.toImmutable():this;
         }
         return new SequencedChampMap<>(root, vector, size, offset);
     }
+
     @Override
     public SequencedChampMap<K, V> replace(Tuple2<K, V> currentEntry, Tuple2<K, V> newEntry) {
         // currentEntry and newEntry are the same => do nothing
@@ -1071,13 +1097,13 @@ return        t.removeAll(keys)?t.toImmutable():this;
 
         // removedData was in the 'root' trie, and we have just removed it
         // => also remove its entry from the 'sequenceRoot' trie
-        Vector<Object> newVector = vector;
+        BitMappedTrie<Object> newVector = vector;
         int newOffset = offset;
         ChampSequenced.ChampSequencedEntry<K, V> removedData = detailsCurrent.getOldData();
         int seq = removedData.getSequenceNumber();
-        Tuple2<Vector<Object>, Integer> result = ChampSequenced.ChampSequencedData.vecRemove(newVector,  removedData,  offset);
-        newVector=result._1;
-        newOffset=result._2;
+        Tuple2<BitMappedTrie<Object>, Integer> result = ChampSequenced.ChampSequencedData.vecRemove(newVector, removedData, offset);
+        newVector = result._1;
+        newOffset = result._2;
 
         // try to update the trie with the newData
         ChampTrie.ChangeEvent<ChampSequenced.ChampSequencedEntry<K, V>> detailsNew = new ChampTrie.ChangeEvent<>();
@@ -1092,14 +1118,14 @@ return        t.removeAll(keys)?t.toImmutable():this;
         // => remove the replaced data from the vector
         if (isReplaced) {
             ChampSequenced.ChampSequencedEntry<K, V> replacedData = detailsNew.getOldData();
-            result = ChampSequenced.ChampSequencedData.vecRemove(newVector,  replacedData,  newOffset);
-            newVector=result._1;
-            newOffset=result._2;
+            result = ChampSequenced.ChampSequencedData.vecRemove(newVector, replacedData, newOffset);
+            newVector = result._1;
+            newOffset = result._2;
         }
 
         // we have just successfully added or replaced the newData
         // => insert the newData in the vector
-        newVector = seq+newOffset<newVector.size()?newVector.update(seq+newOffset,newData):newVector.append(newData);
+        newVector = seq + newOffset < newVector.size() ? newVector.update(seq + newOffset, newData) : newVector.append(newData);
 
         if (isReplaced) {
             // we reduced the size of the map by one => renumbering may be necessary
@@ -1111,18 +1137,13 @@ return        t.removeAll(keys)?t.toImmutable():this;
     }
 
     @Override
-    public SequencedChampMap<K, V> replaceAll(Tuple2<K, V> currentElement, Tuple2<K, V> newElement) {
-        return Maps.replaceAll(this, currentElement, newElement);
-    }
-
-    @Override
-    public SequencedChampMap<K, V> replaceValue(K key, V value) {
-        return Maps.replaceValue(this, key, value);
-    }
-
-    @Override
     public SequencedChampMap<K, V> replace(K key, V oldValue, V newValue) {
         return Maps.replace(this, key, oldValue, newValue);
+    }
+
+    @Override
+    public SequencedChampMap<K, V> replaceAll(Tuple2<K, V> currentElement, Tuple2<K, V> newElement) {
+        return Maps.replaceAll(this, currentElement, newElement);
     }
 
     @Override
@@ -1131,10 +1152,15 @@ return        t.removeAll(keys)?t.toImmutable():this;
     }
 
     @Override
+    public SequencedChampMap<K, V> replaceValue(K key, V value) {
+        return Maps.replaceValue(this, key, value);
+    }
+
+    @Override
     public SequencedChampMap<K, V> retainAll(Iterable<? extends Tuple2<K, V>> elements) {
-        TransientLinkedHashMap<K,V> t=toTransient();
+        TransientLinkedHashMap<K, V> t = toTransient();
         t.retainAllTuples(elements);
-        return t.root==this.root?this: t.toImmutable();
+        return t.root == this.root ? this : t.toImmutable();
     }
 
     io.vavr.collection.Iterator<Tuple2<K, V>> reverseIterator() {
@@ -1144,8 +1170,8 @@ return        t.removeAll(keys)?t.toImmutable():this;
     @SuppressWarnings("unchecked")
     Spliterator<Tuple2<K, V>> reverseSpliterator() {
         return new ChampSequenced.ChampReverseVectorSpliterator<>(vector,
-                e -> new Tuple2<K,V> (((Map.Entry<K, V>) e).getKey(),((Map.Entry<K, V>) e).getValue()),
-                0, size(),Spliterator.SIZED | Spliterator.DISTINCT | Spliterator.ORDERED | Spliterator.IMMUTABLE);
+                e -> new Tuple2<K, V>(((Map.Entry<K, V>) e).getKey(), ((Map.Entry<K, V>) e).getValue()),
+                0, size(), Spliterator.SIZED | Spliterator.DISTINCT | Spliterator.ORDERED | Spliterator.IMMUTABLE);
     }
 
     @Override
@@ -1185,11 +1211,17 @@ return        t.removeAll(keys)?t.toImmutable():this;
     public Spliterator<Tuple2<K, V>> spliterator() {
         return spliterator(0);
     }
+
     @SuppressWarnings("unchecked")
     Spliterator<Tuple2<K, V>> spliterator(int startIndex) {
         return new ChampSequenced.ChampVectorSpliterator<>(vector,
-                e -> new Tuple2<K,V> (((Map.Entry<K, V>) e).getKey(),((Map.Entry<K, V>) e).getValue()),
-                startIndex, size(),Spliterator.SIZED | Spliterator.DISTINCT | Spliterator.ORDERED | Spliterator.IMMUTABLE);
+                e -> new Tuple2<K, V>(((Map.Entry<K, V>) e).getKey(), ((Map.Entry<K, V>) e).getValue()),
+                startIndex, size(), Spliterator.SIZED | Spliterator.DISTINCT | Spliterator.ORDERED | Spliterator.IMMUTABLE);
+    }
+
+    @Override
+    public String stringPrefix() {
+        return "SequencedChampMap";
     }
 
     @Override
@@ -1230,45 +1262,21 @@ return        t.removeAll(keys)?t.toImmutable():this;
         return toJavaMap(java.util.LinkedHashMap::new, t -> t);
     }
 
-    TransientLinkedHashMap<K, V> toTransient() {
-        return new TransientLinkedHashMap<>(this);
-    }
-    @Override
-    public Seq<V> values() {
-        return map(t -> t._2);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return Collections.equals(this, o);
-    }
-
-    @Override
-    public int hashCode() {
-        return Collections.hashUnordered(this);
-    }
-
-    private Object readResolve() {
-        return isEmpty() ? EMPTY : this;
-    }
-
-    @Override
-    public String stringPrefix() {
-        return "SequencedChampMap";
-    }
-
     @Override
     public String toString() {
         return mkString(stringPrefix() + "(", ", ", ")");
     }
 
-    // We need this method to narrow the argument of `ofEntries`.
-    // If this method is static with type args <K, V>, the jdk fails to infer types at the call site.
-    private SequencedChampMap<K, V> createFromEntries(Iterable<Tuple2<K, V>> tuples) {
-        return SequencedChampMap.ofEntries(tuples);
+    TransientLinkedHashMap<K, V> toTransient() {
+        return new TransientLinkedHashMap<>(this);
     }
 
-        private Object writeReplace() throws ObjectStreamException {
+    @Override
+    public Seq<V> values() {
+        return map(t -> t._2);
+    }
+
+    private Object writeReplace() throws ObjectStreamException {
         return new SerializationProxy<>(this);
     }
 
@@ -1301,21 +1309,6 @@ return        t.removeAll(keys)?t.toImmutable():this;
         }
 
         /**
-         * Write an object to a serialization stream.
-         *
-         * @param s An object serialization stream.
-         * @throws IOException If an error occurs writing to the stream.
-         */
-        private void writeObject(ObjectOutputStream s) throws IOException {
-            s.defaultWriteObject();
-            s.writeInt(map.size());
-            for (Tuple2<K, V> e : map) {
-                s.writeObject(e._1);
-                s.writeObject(e._2);
-            }
-        }
-
-        /**
          * Read an object from a deserialization stream.
          *
          * @param s An object deserialization stream.
@@ -1334,9 +1327,9 @@ return        t.removeAll(keys)?t.toImmutable():this;
             for (int i = 0; i < size; i++) {
                 final K key = (K) s.readObject();
                 final V value = (V) s.readObject();
-               t.put(key,value);
+                t.put(key, value);
             }
-            map =t.toImmutable();
+            map = t.toImmutable();
         }
 
         /**
@@ -1350,6 +1343,21 @@ return        t.removeAll(keys)?t.toImmutable():this;
          */
         private Object readResolve() {
             return map;
+        }
+
+        /**
+         * Write an object to a serialization stream.
+         *
+         * @param s An object serialization stream.
+         * @throws IOException If an error occurs writing to the stream.
+         */
+        private void writeObject(ObjectOutputStream s) throws IOException {
+            s.defaultWriteObject();
+            s.writeInt(map.size());
+            for (Tuple2<K, V> e : map) {
+                s.writeObject(e._1);
+                s.writeObject(e._2);
+            }
         }
     }
 
@@ -1369,7 +1377,7 @@ return        t.removeAll(keys)?t.toImmutable():this;
         /**
          * In this vector we store the elements in the order in which they were inserted.
          */
-        private Vector<Object> vector;
+        private BitMappedTrie<Object> vector;
 
         TransientLinkedHashMap(SequencedChampMap<K, V> m) {
             vector = m.vector;
@@ -1380,6 +1388,29 @@ return        t.removeAll(keys)?t.toImmutable():this;
 
         TransientLinkedHashMap() {
             this(empty());
+        }
+
+        @Override
+        void clear() {
+            root = emptyNode();
+            vector = BitMappedTrie.empty();
+            offset = 0;
+            size = 0;
+        }
+
+        boolean filterAll(Predicate<Map.Entry<K, V>> predicate) {
+            ChampTrie.BulkChangeEvent bulkChange = new ChampTrie.BulkChangeEvent();
+            VectorSideEffectPredicate<K, V> vp = new VectorSideEffectPredicate<>(predicate, vector, offset);
+            ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, V>> newRootNode = root.filterAll(makeOwner(), vp, 0, bulkChange);
+            if (bulkChange.removed == 0) {
+                return false;
+            }
+            root = newRootNode;
+            vector = vp.newVector;
+            offset = vector.isEmpty() ? 0 : vp.newOffset;
+            size -= bulkChange.removed;
+            modCount++;
+            return true;
         }
 
         public V put(K key, V value) {
@@ -1424,7 +1455,7 @@ return        t.removeAll(keys)?t.toImmutable():this;
             }
             if (details.isModified()) {
                 if (details.isReplaced()) {
-                    Tuple2<Vector<Object>, Integer> result = ChampSequenced.ChampSequencedData.vecRemove(vector, details.getOldDataNonNull(), offset);
+                    Tuple2<BitMappedTrie<Object>, Integer> result = ChampSequenced.ChampSequencedData.vecRemove(vector, details.getOldDataNonNull(), offset);
                     vector = result._1;
                     offset = result._2;
                 } else {
@@ -1457,7 +1488,7 @@ return        t.removeAll(keys)?t.toImmutable():this;
                     Objects.hashCode(key), 0, details, ChampSequenced.ChampSequencedEntry::keyEquals);
             if (details.isModified()) {
                 ChampSequenced.ChampSequencedEntry<K, V> oldElem = details.getOldDataNonNull();
-                Tuple2<Vector<Object>, Integer> result = ChampSequenced.ChampSequencedData.vecRemove(vector, oldElem, offset);
+                Tuple2<BitMappedTrie<Object>, Integer> result = ChampSequenced.ChampSequencedData.vecRemove(vector, oldElem, offset);
                 vector = result._1;
                 offset = result._2;
                 size--;
@@ -1467,18 +1498,10 @@ return        t.removeAll(keys)?t.toImmutable():this;
             return details;
         }
 
-        @Override
-        void clear() {
-    root= emptyNode();
-    vector= Vector.empty();
-    offset=0;
-    size=0;
-        }
-
         void renumber() {
             if (ChampSequenced.ChampSequencedData.vecMustRenumber(size, offset, vector.size())) {
                 ChampTrie.IdentityObject owner = makeOwner();
-                Tuple2<ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, V>>, Vector<Object>> result = ChampSequenced.ChampSequencedData.vecRenumber(size, root, vector, owner,
+                Tuple2<ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, V>>, BitMappedTrie<Object>> result = ChampSequenced.ChampSequencedData.vecRenumber(size, root, vector, owner,
                         ChampSequenced.ChampSequencedEntry::entryKeyHash, ChampSequenced.ChampSequencedEntry::keyEquals,
                         (e, seq) -> new ChampSequenced.ChampSequencedEntry<>(e.getKey(), e.getValue(), seq));
                 root = result._1;
@@ -1495,11 +1518,11 @@ return        t.removeAll(keys)?t.toImmutable():this;
         }
 
         static class VectorSideEffectPredicate<K, V> implements Predicate<ChampSequenced.ChampSequencedEntry<K, V>> {
-            Vector<Object> newVector;
+            BitMappedTrie<Object> newVector;
             int newOffset;
             Predicate<? super Map.Entry<K, V>> predicate;
 
-            public VectorSideEffectPredicate(Predicate<? super Map.Entry<K, V>> predicate, Vector<Object> vector, int offset) {
+            public VectorSideEffectPredicate(Predicate<? super Map.Entry<K, V>> predicate, BitMappedTrie<Object> vector, int offset) {
                 this.predicate = predicate;
                 this.newVector = vector;
                 this.newOffset = offset;
@@ -1508,28 +1531,13 @@ return        t.removeAll(keys)?t.toImmutable():this;
             @Override
             public boolean test(ChampSequenced.ChampSequencedEntry<K, V> e) {
                 if (!predicate.test(e)) {
-                    Tuple2<Vector<Object>, Integer> result = vecRemove(newVector, e, newOffset);
+                    Tuple2<BitMappedTrie<Object>, Integer> result = vecRemove(newVector, e, newOffset);
                     newVector = result._1;
                     newOffset = result._2;
                     return false;
                 }
                 return true;
             }
-        }
-
-        boolean filterAll(Predicate<Map.Entry<K, V>> predicate) {
-            ChampTrie.BulkChangeEvent bulkChange = new ChampTrie.BulkChangeEvent();
-            VectorSideEffectPredicate<K, V> vp = new VectorSideEffectPredicate<>(predicate, vector, offset);
-            ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, V>> newRootNode = root.filterAll(makeOwner(), vp, 0, bulkChange);
-            if (bulkChange.removed == 0) {
-                return false;
-            }
-            root = newRootNode;
-            vector = vp.newVector;
-            offset = vector.isEmpty()?0:vp.newOffset;
-            size -= bulkChange.removed;
-            modCount++;
-            return true;
         }
     }
 }

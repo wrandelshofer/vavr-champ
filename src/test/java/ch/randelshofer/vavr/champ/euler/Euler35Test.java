@@ -28,8 +28,8 @@ package ch.randelshofer.vavr.champ.euler;
 
 import io.vavr.Function1;
 import io.vavr.collection.CharSeq;
-import io.vavr.collection.Stream;
 import io.vavr.collection.List;
+import io.vavr.collection.Stream;
 import org.junit.jupiter.api.Test;
 
 import java.util.function.Predicate;
@@ -44,13 +44,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * See also <a href="https://projecteuler.net/problem=35">projecteuler.net problem 35</a>.
  */
 public class Euler35Test {
-
-    @Test
-    public void shouldSolveProblem35() {
-        assertThat(rotations(197)).isEqualTo(List.of(197, 971, 719));
-        assertThat(circularPrimes(100)).isEqualTo(13);
-        assertThat(circularPrimes(1000000)).isEqualTo(55);
-    }
 
     private static int circularPrimes(int n) {
         final Predicate<Integer> memoizedIsPrime = Function1.of(Euler35Test::isPrime).memoized()::apply;
@@ -74,6 +67,13 @@ public class Euler35Test {
                 .map(i -> seq.drop(i).appendAll(seq.take(i)))
                 .map(s -> Integer.valueOf(s.toString()))
                 .toList();
+    }
+
+    @Test
+    public void shouldSolveProblem35() {
+        assertThat(rotations(197)).isEqualTo(List.of(197, 971, 719));
+        assertThat(circularPrimes(100)).isEqualTo(13);
+        assertThat(circularPrimes(1000000)).isEqualTo(55);
     }
 
 }

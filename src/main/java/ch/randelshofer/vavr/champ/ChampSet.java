@@ -117,30 +117,23 @@ import java.util.stream.Collector;
 @SuppressWarnings("deprecation")
 public final class ChampSet<T> implements Set<T>, Serializable {
 
-    private static final long serialVersionUID = 1L;
-
-    private static final ChampSet<?> EMPTY = new ChampSet<>(ChampTrie.BitmapIndexedNode.emptyNode(), 0);
-    private final ChampTrie.BitmapIndexedNode<T> root;
-    /**
-     * The size of the set.
-     */
-    final int size;
-
     /**
      * We do not guarantee an iteration order. Make sure that nobody accidentally relies on it.
      * <p>
      * XXX HashSetTest requires a specific iteration order of ChampSet! Therefore, we can not use SALT here.
      */
     static final int SALT = 0;//new Random().nextInt();
+    private static final long serialVersionUID = 1L;
+    private static final ChampSet<?> EMPTY = new ChampSet<>(ChampTrie.BitmapIndexedNode.emptyNode(), 0);
+    /**
+     * The size of the set.
+     */
+    final int size;
+    private final ChampTrie.BitmapIndexedNode<T> root;
 
     ChampSet(ChampTrie.BitmapIndexedNode<T> root, int size) {
         this.root = root;
         this.size = size;
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T> ChampSet<T> empty() {
-        return (ChampSet<T>) EMPTY;
     }
 
     /**
@@ -152,6 +145,29 @@ public final class ChampSet<T> implements Set<T>, Serializable {
      */
     public static <T> Collector<T, ArrayList<T>, ChampSet<T>> collector() {
         return Collections.toListAndThen(ChampSet::ofAll);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> ChampSet<T> empty() {
+        return (ChampSet<T>) EMPTY;
+    }
+
+    /**
+     * Returns a ChampSet containing tuples returned by {@code n} calls to a given Supplier {@code s}.
+     *
+     * @param <T> Component type of the ChampSet
+     * @param n   The number of elements in the ChampSet
+     * @param s   The Supplier computing element values
+     * @return An ChampSet of size {@code n}, where each element contains the result supplied by {@code s}.
+     * @throws NullPointerException if {@code s} is null
+     */
+    public static <T> ChampSet<T> fill(int n, Supplier<? extends T> s) {
+        Objects.requireNonNull(s, "s is null");
+        return Collections.fill(n, s, ChampSet.empty(), ChampSet::of);
+    }
+
+    static int keyHash(Object e) {
+        return SALT ^ Objects.hashCode(e);
     }
 
     /**
@@ -194,35 +210,6 @@ public final class ChampSet<T> implements Set<T>, Serializable {
     public static <T> ChampSet<T> of(T... elements) {
         Objects.requireNonNull(elements, "elements is null");
         return ChampSet.<T>empty().addAll(Arrays.asList(elements));
-    }
-
-    /**
-     * Returns an ChampSet containing {@code n} values of a given Function {@code f}
-     * over a range of integer values from 0 to {@code n - 1}.
-     *
-     * @param <T> Component type of the ChampSet
-     * @param n   The number of elements in the ChampSet
-     * @param f   The Function computing element values
-     * @return An ChampSet consisting of elements {@code f(0),f(1), ..., f(n - 1)}
-     * @throws NullPointerException if {@code f} is null
-     */
-    public static <T> ChampSet<T> tabulate(int n, Function<? super Integer, ? extends T> f) {
-        Objects.requireNonNull(f, "f is null");
-        return Collections.tabulate(n, f, ChampSet.empty(), ChampSet::of);
-    }
-
-    /**
-     * Returns a ChampSet containing tuples returned by {@code n} calls to a given Supplier {@code s}.
-     *
-     * @param <T> Component type of the ChampSet
-     * @param n   The number of elements in the ChampSet
-     * @param s   The Supplier computing element values
-     * @return An ChampSet of size {@code n}, where each element contains the result supplied by {@code s}.
-     * @throws NullPointerException if {@code s} is null
-     */
-    public static <T> ChampSet<T> fill(int n, Supplier<? extends T> s) {
-        Objects.requireNonNull(s, "s is null");
-        return Collections.fill(n, s, ChampSet.empty(), ChampSet::of);
     }
 
     /**
@@ -371,6 +358,26 @@ public final class ChampSet<T> implements Set<T>, Serializable {
     }
 
     /**
+     * Creates a ChampSet of long numbers starting from {@code from}, extending to {@code toExclusive - 1}.
+     * <p>
+     * Examples:
+     * <pre>
+     * <code>
+     * ChampSet.range(0L, 0L)  // = ChampSet()
+     * ChampSet.range(2L, 0L)  // = ChampSet()
+     * ChampSet.range(-2L, 2L) // = ChampSet(-2L, -1L, 0L, 1L)
+     * </code>
+     * </pre>
+     *
+     * @param from        the first number
+     * @param toExclusive the last number + 1
+     * @return a range of long values as specified or the empty range if {@code from >= toExclusive}
+     */
+    public static ChampSet<Long> range(long from, long toExclusive) {
+        return ChampSet.ofAll(Iterator.range(from, toExclusive));
+    }
+
+    /**
      * Creates a ChampSet of int numbers starting from {@code from}, extending to {@code toExclusive - 1},
      * with {@code step}.
      * <p>
@@ -402,26 +409,6 @@ public final class ChampSet<T> implements Set<T>, Serializable {
 
     public static ChampSet<Double> rangeBy(double from, double toExclusive, double step) {
         return ChampSet.ofAll(Iterator.rangeBy(from, toExclusive, step));
-    }
-
-    /**
-     * Creates a ChampSet of long numbers starting from {@code from}, extending to {@code toExclusive - 1}.
-     * <p>
-     * Examples:
-     * <pre>
-     * <code>
-     * ChampSet.range(0L, 0L)  // = ChampSet()
-     * ChampSet.range(2L, 0L)  // = ChampSet()
-     * ChampSet.range(-2L, 2L) // = ChampSet(-2L, -1L, 0L, 1L)
-     * </code>
-     * </pre>
-     *
-     * @param from        the first number
-     * @param toExclusive the last number + 1
-     * @return a range of long values as specified or the empty range if {@code from >= toExclusive}
-     */
-    public static ChampSet<Long> range(long from, long toExclusive) {
-        return ChampSet.ofAll(Iterator.range(from, toExclusive));
     }
 
     /**
@@ -475,6 +462,26 @@ public final class ChampSet<T> implements Set<T>, Serializable {
     }
 
     /**
+     * Creates a ChampSet of long numbers starting from {@code from}, extending to {@code toInclusive}.
+     * <p>
+     * Examples:
+     * <pre>
+     * <code>
+     * ChampSet.rangeClosed(0L, 0L)  // = ChampSet(0L)
+     * ChampSet.rangeClosed(2L, 0L)  // = ChampSet()
+     * ChampSet.rangeClosed(-2L, 2L) // = ChampSet(-2L, -1L, 0L, 1L, 2L)
+     * </code>
+     * </pre>
+     *
+     * @param from        the first number
+     * @param toInclusive the last number
+     * @return a range of long values as specified or the empty range if {@code from > toInclusive}
+     */
+    public static ChampSet<Long> rangeClosed(long from, long toInclusive) {
+        return ChampSet.ofAll(Iterator.rangeClosed(from, toInclusive));
+    }
+
+    /**
      * Creates a ChampSet of int numbers starting from {@code from}, extending to {@code toInclusive},
      * with {@code step}.
      * <p>
@@ -509,26 +516,6 @@ public final class ChampSet<T> implements Set<T>, Serializable {
     }
 
     /**
-     * Creates a ChampSet of long numbers starting from {@code from}, extending to {@code toInclusive}.
-     * <p>
-     * Examples:
-     * <pre>
-     * <code>
-     * ChampSet.rangeClosed(0L, 0L)  // = ChampSet(0L)
-     * ChampSet.rangeClosed(2L, 0L)  // = ChampSet()
-     * ChampSet.rangeClosed(-2L, 2L) // = ChampSet(-2L, -1L, 0L, 1L, 2L)
-     * </code>
-     * </pre>
-     *
-     * @param from        the first number
-     * @param toInclusive the last number
-     * @return a range of long values as specified or the empty range if {@code from > toInclusive}
-     */
-    public static ChampSet<Long> rangeClosed(long from, long toInclusive) {
-        return ChampSet.ofAll(Iterator.rangeClosed(from, toInclusive));
-    }
-
-    /**
      * Creates a ChampSet of long numbers starting from {@code from}, extending to {@code toInclusive},
      * with {@code step}.
      * <p>
@@ -554,15 +541,19 @@ public final class ChampSet<T> implements Set<T>, Serializable {
         return ChampSet.ofAll(Iterator.rangeClosedBy(from, toInclusive, step));
     }
 
-    @Override
-    public ChampSet<T> add(T element) {
-        int keyHash = keyHash(element);
-        ChampTrie.ChangeEvent<T> details = new ChampTrie.ChangeEvent<>();
-        ChampTrie.BitmapIndexedNode<T> newRootNode = root.put(null, element, keyHash, 0, details, ChampSet::updateElement, Objects::equals, ChampSet::keyHash);
-        if (details.isModified()) {
-            return new ChampSet<>(newRootNode, size + 1);
-        }
-        return this;
+    /**
+     * Returns an ChampSet containing {@code n} values of a given Function {@code f}
+     * over a range of integer values from 0 to {@code n - 1}.
+     *
+     * @param <T> Component type of the ChampSet
+     * @param n   The number of elements in the ChampSet
+     * @param f   The Function computing element values
+     * @return An ChampSet consisting of elements {@code f(0),f(1), ..., f(n - 1)}
+     * @throws NullPointerException if {@code f} is null
+     */
+    public static <T> ChampSet<T> tabulate(int n, Function<? super Integer, ? extends T> f) {
+        Objects.requireNonNull(f, "f is null");
+        return Collections.tabulate(n, f, ChampSet.empty(), ChampSet::of);
     }
 
     /**
@@ -577,16 +568,26 @@ public final class ChampSet<T> implements Set<T>, Serializable {
         return oldElement;
     }
 
+    @Override
+    public ChampSet<T> add(T element) {
+        int keyHash = keyHash(element);
+        ChampTrie.ChangeEvent<T> details = new ChampTrie.ChangeEvent<>();
+        ChampTrie.BitmapIndexedNode<T> newRootNode = root.put(null, element, keyHash, 0, details, ChampSet::updateElement, Objects::equals, ChampSet::keyHash);
+        if (details.isModified()) {
+            return new ChampSet<>(newRootNode, size + 1);
+        }
+        return this;
+    }
 
     @SuppressWarnings("unchecked")
     @Override
     public ChampSet<T> addAll(Iterable<? extends T> elements) {
-        if(isEmpty()&&elements instanceof ChampSet){
+        if (isEmpty() && elements instanceof ChampSet) {
             return (ChampSet<T>) elements;
         }
         TransientHashSet<T> t = toTransient();
         t.addAll(elements);
-        return t.root==this.root?this: t.toImmutable();
+        return t.root == this.root ? this : t.toImmutable();
     }
 
     @Override
@@ -654,10 +655,15 @@ public final class ChampSet<T> implements Set<T>, Serializable {
     }
 
     @Override
+    public boolean equals(Object o) {
+        return Collections.equals(this, o);
+    }
+
+    @Override
     public ChampSet<T> filter(Predicate<? super T> predicate) {
         TransientHashSet<T> t = toTransient();
         t.filterAll(predicate);
-        return t.root==this.root?this: t.toImmutable();
+        return t.root == this.root ? this : t.toImmutable();
     }
 
     //@Override
@@ -695,6 +701,11 @@ public final class ChampSet<T> implements Set<T>, Serializable {
     @Override
     public boolean hasDefiniteSize() {
         return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return Collections.hashUnordered(this);
     }
 
     @Override
@@ -765,10 +776,6 @@ public final class ChampSet<T> implements Set<T>, Serializable {
         return new ChampIteration.IteratorFacade<>(spliterator());
     }
 
-    static int keyHash(Object e) {
-        return SALT ^ Objects.hashCode(e);
-    }
-
     @Override
     public T last() {
         return ChampTrie.Node.getLast(root);
@@ -825,8 +832,21 @@ public final class ChampSet<T> implements Set<T>, Serializable {
         }
         return this;
     }
+
+    /**
+     * {@code readObject} method for the serialization proxy pattern.
+     * <p>
+     * Guarantees that the serialization system will never generate a serialized instance of the enclosing class.
+     *
+     * @param stream An object serialization stream.
+     * @throws InvalidObjectException This method will throw with the message "Proxy required".
+     */
+    private void readObject(ObjectInputStream stream) throws InvalidObjectException {
+        throw new InvalidObjectException("Proxy required");
+    }
+
     @Override
- public ChampSet<T> reject(Predicate<? super T> predicate) {
+    public ChampSet<T> reject(Predicate<? super T> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         return this.filter(predicate.negate());
     }
@@ -846,7 +866,7 @@ public final class ChampSet<T> implements Set<T>, Serializable {
     public ChampSet<T> removeAll(Iterable<? extends T> elements) {
         TransientHashSet<T> t = toTransient();
         t.removeAll(elements);
-        return t.root==this.root?this: t.toImmutable();
+        return t.root == this.root ? this : t.toImmutable();
     }
 
     @Override
@@ -864,7 +884,7 @@ public final class ChampSet<T> implements Set<T>, Serializable {
     public ChampSet<T> retainAll(Iterable<? extends T> elements) {
         TransientHashSet<T> t = toTransient();
         t.retainAll(elements);
-        return t.root==this.root?this: t.toImmutable();
+        return t.root == this.root ? this : t.toImmutable();
     }
 
     @Override
@@ -911,6 +931,11 @@ public final class ChampSet<T> implements Set<T>, Serializable {
     }
 
     @Override
+    public String stringPrefix() {
+        return "ChampSet";
+    }
+
+    @Override
     public ChampSet<T> tail() {
         if (isEmpty()) {
             throw new UnsupportedOperationException("tail of empty set");
@@ -952,6 +977,22 @@ public final class ChampSet<T> implements Set<T>, Serializable {
         return taken.length() == length() ? this : taken;
     }
 
+    @Override
+    public java.util.HashSet<T> toJavaSet() {
+        // XXX If the return value was not required to be a java.util.ChampSet
+        //     we could provide a mutable ChampSet in O(1)
+        return toJavaSet(java.util.HashSet::new);
+    }
+
+    @Override
+    public String toString() {
+        return mkString(stringPrefix() + "(", ", ", ")");
+    }
+
+    TransientHashSet<T> toTransient() {
+        return new TransientHashSet<>(this);
+    }
+
     /**
      * Transforms this {@code ChampSet}.
      *
@@ -965,23 +1006,13 @@ public final class ChampSet<T> implements Set<T>, Serializable {
         return f.apply(this);
     }
 
-    @Override
-    public java.util.HashSet<T> toJavaSet() {
-        // XXX If the return value was not required to be a java.util.ChampSet
-        //     we could provide a mutable ChampSet in O(1)
-        return toJavaSet(java.util.HashSet::new);
-    }
-
-    TransientHashSet<T> toTransient() {
-        return new TransientHashSet<>(this);
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public ChampSet<T> union(Set<? extends T> elements) {
         return addAll(elements);
     }
-   public <T1, T2> Tuple2<Iterator<T1>, Iterator<T2>> unzip(
+
+    public <T1, T2> Tuple2<Iterator<T1>, Iterator<T2>> unzip(
             Function<? super T, ? extends T1> unzipper1, Function<? super T, ? extends T2> unzipper2) {
         Objects.requireNonNull(unzipper1, "unzipper1 is null");
         Objects.requireNonNull(unzipper2, "unzipper2 is null");
@@ -989,69 +1020,20 @@ public final class ChampSet<T> implements Set<T>, Serializable {
         final Iterator<T2> iter2 = iterator().map(unzipper2);
         return Tuple.of(iter1, iter2);
     }
+
     public <T1, T2> Tuple2<ChampSet<T1>, ChampSet<T2>> unzip(Function<? super T, Tuple2<? extends T1, ? extends T2>> unzipper) {
         Objects.requireNonNull(unzipper, "unzipper is null");
         Tuple2<Iterator<T1>, Iterator<T2>> t = this.iterator().unzip(unzipper);
-        return Tuple.of(ofAll((Iterable)t._1), ofAll((Iterable)t._2));
+        return Tuple.of(ofAll((Iterable) t._1), ofAll((Iterable) t._2));
     }
+
     public <T1, T2, T3> Tuple3<ChampSet<T1>, ChampSet<T2>, ChampSet<T3>> unzip3(Function<? super T, Tuple3<? extends T1, ? extends T2, ? extends T3>> unzipper) {
         Objects.requireNonNull(unzipper, "unzipper is null");
         Tuple3<Iterator<T1>, Iterator<T2>, Iterator<T3>> t = this.iterator().unzip3(unzipper);
-        return Tuple.of(ofAll((Iterable)t._1), ofAll((Iterable)t._2), ofAll((Iterable)t._3));
-    }
-    @Override
-    public <U> ChampSet<Tuple2<T, U>> zip(Iterable<? extends U> that) {
-        return zipWith(that, Tuple::of);
-    }
-
-    @Override
-    public <U, R> ChampSet<R> zipWith(Iterable<? extends U> that, BiFunction<? super T, ? super U, ? extends R> mapper) {
-        Objects.requireNonNull(that, "that is null");
-        Objects.requireNonNull(mapper, "mapper is null");
-        return ChampSet.ofAll(iterator().zipWith(that, mapper));
-    }
-
-    @Override
-    public <U> ChampSet<Tuple2<T, U>> zipAll(Iterable<? extends U> that, T thisElem, U thatElem) {
-        Objects.requireNonNull(that, "that is null");
-        return ChampSet.ofAll(iterator().zipAll(that, thisElem, thatElem));
-    }
-
-    @Override
-    public ChampSet<Tuple2<T, Integer>> zipWithIndex() {
-        return zipWithIndex(Tuple::of);
-    }
-
-    @Override
-    public <U> ChampSet<U> zipWithIndex(BiFunction<? super T, ? super Integer, ? extends U> mapper) {
-        Objects.requireNonNull(mapper, "mapper is null");
-        return ChampSet.ofAll(iterator().zipWithIndex(mapper));
+        return Tuple.of(ofAll((Iterable) t._1), ofAll((Iterable) t._2), ofAll((Iterable) t._3));
     }
 
     // -- Object
-
-    @Override
-    public boolean equals(Object o) {
-        return Collections.equals(this, o);
-    }
-
-    @Override
-    public int hashCode() {
-        return Collections.hashUnordered(this);
-    }
-
-    @Override
-    public String stringPrefix() {
-        return "ChampSet";
-    }
-
-    @Override
-    public String toString() {
-        return mkString(stringPrefix() + "(", ", ", ")");
-    }
-
-
-    // -- Serialization
 
     /**
      * {@code writeReplace} method for the serialization proxy pattern.
@@ -1065,16 +1047,36 @@ public final class ChampSet<T> implements Set<T>, Serializable {
         return new SerializationProxy<>(this);
     }
 
-    /**
-     * {@code readObject} method for the serialization proxy pattern.
-     * <p>
-     * Guarantees that the serialization system will never generate a serialized instance of the enclosing class.
-     *
-     * @param stream An object serialization stream.
-     * @throws InvalidObjectException This method will throw with the message "Proxy required".
-     */
-    private void readObject(ObjectInputStream stream) throws InvalidObjectException {
-        throw new InvalidObjectException("Proxy required");
+    @Override
+    public <U> ChampSet<Tuple2<T, U>> zip(Iterable<? extends U> that) {
+        return zipWith(that, Tuple::of);
+    }
+
+    @Override
+    public <U> ChampSet<Tuple2<T, U>> zipAll(Iterable<? extends U> that, T thisElem, U thatElem) {
+        Objects.requireNonNull(that, "that is null");
+        return ChampSet.ofAll(iterator().zipAll(that, thisElem, thatElem));
+    }
+
+    @Override
+    public <U, R> ChampSet<R> zipWith(Iterable<? extends U> that, BiFunction<? super T, ? super U, ? extends R> mapper) {
+        Objects.requireNonNull(that, "that is null");
+        Objects.requireNonNull(mapper, "mapper is null");
+        return ChampSet.ofAll(iterator().zipWith(that, mapper));
+    }
+
+
+    // -- Serialization
+
+    @Override
+    public ChampSet<Tuple2<T, Integer>> zipWithIndex() {
+        return zipWithIndex(Tuple::of);
+    }
+
+    @Override
+    public <U> ChampSet<U> zipWithIndex(BiFunction<? super T, ? super Integer, ? extends U> mapper) {
+        Objects.requireNonNull(mapper, "mapper is null");
+        return ChampSet.ofAll(iterator().zipWithIndex(mapper));
     }
 
     /**
@@ -1102,20 +1104,6 @@ public final class ChampSet<T> implements Set<T>, Serializable {
          */
         SerializationProxy(ChampSet<T> tree) {
             this.tree = tree;
-        }
-
-        /**
-         * Write an object to a serialization stream.
-         *
-         * @param s An object serialization stream.
-         * @throws IOException If an error occurs writing to the stream.
-         */
-        private void writeObject(ObjectOutputStream s) throws IOException {
-            s.defaultWriteObject();
-            s.writeInt(tree.size());
-            for (T e : tree) {
-                s.writeObject(e);
-            }
         }
 
         /**
@@ -1157,6 +1145,20 @@ public final class ChampSet<T> implements Set<T>, Serializable {
         private Object readResolve() {
             return tree;
         }
+
+        /**
+         * Write an object to a serialization stream.
+         *
+         * @param s An object serialization stream.
+         * @throws IOException If an error occurs writing to the stream.
+         */
+        private void writeObject(ObjectOutputStream s) throws IOException {
+            s.defaultWriteObject();
+            s.writeInt(tree.size());
+            for (T e : tree) {
+                s.writeObject(e);
+            }
+        }
     }
 
     /**
@@ -1172,13 +1174,6 @@ public final class ChampSet<T> implements Set<T>, Serializable {
 
         TransientHashSet() {
             this(empty());
-        }
-
-        public ChampSet<E> toImmutable() {
-            owner = null;
-            return isEmpty()
-                    ? empty()
-                    : new ChampSet<>(root, size);
         }
 
         boolean add(E e) {
@@ -1224,14 +1219,29 @@ public final class ChampSet<T> implements Set<T>, Serializable {
             return added;
         }
 
+        void clear() {
+            root = ChampTrie.BitmapIndexedNode.emptyNode();
+            size = 0;
+            modCount++;
+        }
+
+        public boolean filterAll(Predicate<? super E> predicate) {
+            ChampTrie.BulkChangeEvent bulkChange = new ChampTrie.BulkChangeEvent();
+            ChampTrie.BitmapIndexedNode<E> newRootNode
+                    = root.filterAll(makeOwner(), predicate, 0, bulkChange);
+            if (bulkChange.removed == 0) {
+                return false;
+            }
+            root = newRootNode;
+            size -= bulkChange.removed;
+            modCount++;
+            return true;
+
+        }
+
         @Override
         public java.util.Iterator<E> iterator() {
             return new ChampIteration.IteratorFacade<>(spliterator());
-        }
-
-
-        public Spliterator<E> spliterator() {
-            return new ChampIteration.ChampSpliterator<>(root, Function.identity(), Spliterator.DISTINCT | Spliterator.SIZED, size);
         }
 
         @SuppressWarnings("unchecked")
@@ -1268,12 +1278,6 @@ public final class ChampSet<T> implements Set<T>, Serializable {
             return super.removeAll(c);
         }
 
-        void clear() {
-            root = ChampTrie.BitmapIndexedNode.emptyNode();
-            size = 0;
-            modCount++;
-        }
-
         @SuppressWarnings("unchecked")
         boolean retainAll(Iterable<?> c) {
             if (isEmpty()) {
@@ -1306,18 +1310,15 @@ public final class ChampSet<T> implements Set<T>, Serializable {
             return true;
         }
 
-        public boolean filterAll(Predicate<? super E> predicate) {
-            ChampTrie.BulkChangeEvent bulkChange = new ChampTrie.BulkChangeEvent();
-            ChampTrie.BitmapIndexedNode<E> newRootNode
-                    = root.filterAll(makeOwner(), predicate, 0, bulkChange);
-            if (bulkChange.removed == 0) {
-                return false;
-            }
-            root = newRootNode;
-            size -= bulkChange.removed;
-            modCount++;
-            return true;
+        public Spliterator<E> spliterator() {
+            return new ChampIteration.ChampSpliterator<>(root, Function.identity(), Spliterator.DISTINCT | Spliterator.SIZED, size);
+        }
 
+        public ChampSet<E> toImmutable() {
+            owner = null;
+            return isEmpty()
+                    ? empty()
+                    : new ChampSet<>(root, size);
         }
     }
 }

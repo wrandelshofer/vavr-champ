@@ -52,60 +52,17 @@ import java.util.function.Supplier;
 public final class IntMap<T> implements Traversable<T>, Serializable {
 
     private static final long serialVersionUID = 1L;
-
-    private final Map<Integer, T> original;
-
     private static final IntMap<?> EMPTY = new IntMap<>(ChampMap.empty());
-
-    @SuppressWarnings("unchecked")
-    public static <T> IntMap<T> of(Map<Integer, T> original) {
-        return original.isEmpty() ? (IntMap<T>) EMPTY
-                                  : new IntMap<>(original);
-    }
-
-    // DEV-NOTE: needs to be used internally to ensure the isSameAs property of the original is reflected by this impl
-    private IntMap<T> unit(Map<Integer, T> original) {
-        return (this.original == original) ? this : of(original);
-    }
+    private final Map<Integer, T> original;
 
     private IntMap(Map<Integer, T> original) {
         this.original = original;
     }
 
-    @Override
-    public boolean isAsync() {
-        return original.isAsync();
-    }
-
-    @Override
-    public boolean isDistinct() {
-        return original.isDistinct();
-    }
-
-    @Override
-    public boolean isLazy() {
-        return original.isLazy();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        final Object that = (o instanceof IntMap) ?((IntMap) o).original : o;
-        return Collections.equals(original, that);
-    }
-
-    @Override
-    public int hashCode() {
-        return original.hashCode();
-    }
-
-    @Override
-    public String stringPrefix() {
-        return "IntMap";
-    }
-
-    @Override
-    public String toString() {
-        return mkString(stringPrefix() + "(", ", ", ")");
+    @SuppressWarnings("unchecked")
+    public static <T> IntMap<T> of(Map<Integer, T> original) {
+        return original.isEmpty() ? (IntMap<T>) EMPTY
+                : new IntMap<>(original);
     }
 
     @Override
@@ -113,10 +70,12 @@ public final class IntMap<T> implements Traversable<T>, Serializable {
         Objects.requireNonNull(partialFunction, "partialFunction is null");
         final PartialFunction<Tuple2<Integer, T>, R> pf = new PartialFunction<Tuple2<Integer, T>, R>() {
             private static final long serialVersionUID = 1L;
+
             @Override
             public R apply(Tuple2<Integer, T> entry) {
                 return partialFunction.apply(entry._2);
             }
+
             @Override
             public boolean isDefinedAt(Tuple2<Integer, T> entry) {
                 return partialFunction.isDefinedAt(entry._2);
@@ -163,10 +122,15 @@ public final class IntMap<T> implements Traversable<T>, Serializable {
     }
 
     @Override
+    public boolean equals(Object o) {
+        final Object that = (o instanceof IntMap) ? ((IntMap) o).original : o;
+        return Collections.equals(original, that);
+    }
+
+    @Override
     public IntMap<T> filter(Predicate<? super T> predicate) {
         return unit(original.filter(p -> predicate.test(p._2)));
     }
-
 
     @Override
     public <U> Seq<U> flatMap(Function<? super T, ? extends Iterable<? extends U>> mapper) {
@@ -195,6 +159,11 @@ public final class IntMap<T> implements Traversable<T>, Serializable {
     }
 
     @Override
+    public int hashCode() {
+        return original.hashCode();
+    }
+
+    @Override
     public T head() {
         return original.head()._2;
     }
@@ -215,8 +184,23 @@ public final class IntMap<T> implements Traversable<T>, Serializable {
     }
 
     @Override
+    public boolean isAsync() {
+        return original.isAsync();
+    }
+
+    @Override
+    public boolean isDistinct() {
+        return original.isDistinct();
+    }
+
+    @Override
     public boolean isEmpty() {
         return original.isEmpty();
+    }
+
+    @Override
+    public boolean isLazy() {
+        return original.isLazy();
     }
 
     @Override
@@ -290,7 +274,7 @@ public final class IntMap<T> implements Traversable<T>, Serializable {
 
     @Override
     public Traversable<T> scan(T zero, BiFunction<? super T, ? super T, ? extends T> operation) {
-        final int[] index = new int[] { 0 };
+        final int[] index = new int[]{0};
         return original.scan(Tuple.of(-1, zero), (i, t) -> Tuple.of(index[0]++, operation.apply(i._2, t._2))).values();
     }
 
@@ -333,23 +317,13 @@ public final class IntMap<T> implements Traversable<T>, Serializable {
             }
 
             @Override
-            public boolean tryAdvance(Consumer<? super T> action) {
-                return spliterator.tryAdvance(a -> action.accept(a._2));
-            }
-
-            @Override
-            public Spliterator<T> trySplit() {
-                return new SpliteratorProxy(spliterator.trySplit());
+            public int characteristics() {
+                return spliterator.characteristics();
             }
 
             @Override
             public long estimateSize() {
                 return spliterator.estimateSize();
-            }
-
-            @Override
-            public int characteristics() {
-                return spliterator.characteristics();
             }
 
             @Override
@@ -359,8 +333,23 @@ public final class IntMap<T> implements Traversable<T>, Serializable {
                 }
                 throw new IllegalStateException();
             }
+
+            @Override
+            public boolean tryAdvance(Consumer<? super T> action) {
+                return spliterator.tryAdvance(a -> action.accept(a._2));
+            }
+
+            @Override
+            public Spliterator<T> trySplit() {
+                return new SpliteratorProxy(spliterator.trySplit());
+            }
         }
         return new SpliteratorProxy(original.spliterator());
+    }
+
+    @Override
+    public String stringPrefix() {
+        return "IntMap";
     }
 
     @Override
@@ -394,6 +383,16 @@ public final class IntMap<T> implements Traversable<T>, Serializable {
     }
 
     @Override
+    public String toString() {
+        return mkString(stringPrefix() + "(", ", ", ")");
+    }
+
+    // DEV-NOTE: needs to be used internally to ensure the isSameAs property of the original is reflected by this impl
+    private IntMap<T> unit(Map<Integer, T> original) {
+        return (this.original == original) ? this : of(original);
+    }
+
+    @Override
     public <T1, T2> Tuple2<? extends Traversable<T1>, ? extends Traversable<T2>> unzip(Function<? super T, Tuple2<? extends T1, ? extends T2>> function) {
         Objects.requireNonNull(function, "unzipper is null");
         return this.iterator().unzip(function).map(Stream::ofAll, Stream::ofAll);
@@ -412,16 +411,16 @@ public final class IntMap<T> implements Traversable<T>, Serializable {
     }
 
     @Override
+    public <U> Seq<Tuple2<T, U>> zipAll(Iterable<? extends U> that, T thisElem, U thatElem) {
+        Objects.requireNonNull(that, "that is null");
+        return Stream.ofAll(iterator().zipAll(that, thisElem, thatElem));
+    }
+
+    @Override
     public <U, R> Seq<R> zipWith(Iterable<? extends U> that, BiFunction<? super T, ? super U, ? extends R> mapper) {
         Objects.requireNonNull(that, "that is null");
         Objects.requireNonNull(mapper, "mapper is null");
         return Stream.ofAll(iterator().zipWith(that, mapper));
-    }
-
-    @Override
-    public <U> Seq<Tuple2<T, U>> zipAll(Iterable<? extends U> that, T thisElem, U thatElem) {
-        Objects.requireNonNull(that, "that is null");
-        return Stream.ofAll(iterator().zipAll(that, thisElem, thatElem));
     }
 
     @Override

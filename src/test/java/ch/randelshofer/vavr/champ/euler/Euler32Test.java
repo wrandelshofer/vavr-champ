@@ -27,14 +27,34 @@
 package ch.randelshofer.vavr.champ.euler;
 
 import io.vavr.Tuple;
-import io.vavr.collection.CharSeq;
 import io.vavr.Tuple3;
+import io.vavr.collection.CharSeq;
 import io.vavr.collection.List;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler32Test {
+
+    private static final CharSeq DIGITS_1_9 = CharSeq.of("123456789");
+
+    private static boolean isPandigital(int from, int to, String num) {
+        return num.length() == to - from + 1 && List.rangeClosed(from, to).forAll(i -> num.contains(Integer.toString(i)));
+    }
+
+    private static long sumOfAllProductsPandigital1Through9() {
+        return List.of(1, 2)
+                .flatMap(i -> DIGITS_1_9.crossProduct(i)
+                        .flatMap(multiplicand -> DIGITS_1_9.removeAll(multiplicand).crossProduct(5 - i)
+                                .map(multiplier -> Tuple.of(multiplicand.mkString(), multiplier.mkString()))
+                        )
+                )
+                .map(t -> Tuple.of(t._1, t._2, Long.valueOf(t._1) * Long.valueOf(t._2)))
+                .filter(t -> isPandigital(1, 9, t._1 + t._2 + Long.toString(t._3)))
+                .map(Tuple3::_3)
+                .distinct()
+                .sum().longValue();
+    }
 
     /**
      * <strong>Problem 23 Pandigital products</strong>
@@ -62,25 +82,5 @@ public class Euler32Test {
         assertThat(isPandigital(1, 5, "55555")).isFalse();
         assertThat(isPandigital(1, 5, "12340")).isFalse();
         assertThat(sumOfAllProductsPandigital1Through9()).isEqualTo(45228);
-    }
-
-    private static boolean isPandigital(int from, int to, String num) {
-        return num.length() == to - from + 1 && List.rangeClosed(from, to).forAll(i -> num.contains(Integer.toString(i)));
-    }
-
-    private static final CharSeq DIGITS_1_9 = CharSeq.of("123456789");
-
-    private static long sumOfAllProductsPandigital1Through9() {
-        return List.of(1, 2)
-                .flatMap(i -> DIGITS_1_9.crossProduct(i)
-                        .flatMap(multiplicand -> DIGITS_1_9.removeAll(multiplicand).crossProduct(5 - i)
-                                .map(multiplier -> Tuple.of(multiplicand.mkString(), multiplier.mkString()))
-                        )
-                )
-                .map(t -> Tuple.of(t._1, t._2, Long.valueOf(t._1) * Long.valueOf(t._2)))
-                .filter(t -> isPandigital(1, 9, t._1 + t._2 + Long.toString(t._3)))
-                .map(Tuple3::_3)
-                .distinct()
-                .sum().longValue();
     }
 }

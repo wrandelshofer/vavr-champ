@@ -35,6 +35,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler15Test {
 
+    private static long solve(int n) {
+        final BigInteger f = factorial(n);
+        return factorial(2 * n).divide(f).divide(f).longValue();
+    }
+
     /**
      * <strong>Problem 15: Lattice paths</strong>
      * <p>
@@ -49,10 +54,5 @@ public class Euler15Test {
     public void shouldSolveProblem15() {
         assertThat(solve(2)).isEqualTo(6);
         assertThat(solve(20)).isEqualTo(137_846_528_820L);
-    }
-
-    private static long solve(int n) {
-        final BigInteger f = factorial(n);
-        return factorial(2 * n).divide(f).divide(f).longValue();
     }
 }

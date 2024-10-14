@@ -35,6 +35,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler16Test {
 
+    private static long solve(int n) {
+        return CharSeq.of(BigInteger.valueOf(2).pow(n).toString())
+                .map(c -> c - '0')
+                .fold(0, (a, b) -> a + b);
+    }
+
     /**
      * <strong>Problem 16: Power digit sum</strong>
      * <p>
@@ -48,11 +54,5 @@ public class Euler16Test {
     public void shouldSolveProblem16() {
         assertThat(solve(15)).isEqualTo(26);
         assertThat(solve(1000)).isEqualTo(1_366);
-    }
-
-    private static long solve(int n) {
-        return CharSeq.of(BigInteger.valueOf(2).pow(n).toString())
-                .map(c -> c - '0')
-                .fold(0, (a, b) -> a + b);
     }
 }

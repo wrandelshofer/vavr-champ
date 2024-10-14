@@ -35,6 +35,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler34Test {
 
+    private static int sumOfDigitFactorial(int num) {
+        return CharSeq.of(Integer.toString(num))
+                .map(c -> Character.digit(c, 10))
+                .map(MEMOIZED_FACTORIAL)
+                .sum().intValue();
+    }
+
+    private static int sumOfOfAllNumbersWhichAreEqualToSumOfDigitFactorial() {
+        return Stream.rangeClosed(3, 2_540_160) // 9! * 7 = 2 540 160 is a seven digit number, as is 9! * 8, therefor 9! * 7 is the definitive upper limit we have to investigate.
+                .filter(i -> i == sumOfDigitFactorial(i))
+                .sum().intValue();
+    }
+
     /**
      * <strong>Problem 34 Digit factorials</strong>
      * <p>
@@ -53,18 +66,5 @@ public class Euler34Test {
     public void shouldSolveProblem34() {
         assertThat(sumOfDigitFactorial(145)).isEqualTo(145);
         assertThat(sumOfOfAllNumbersWhichAreEqualToSumOfDigitFactorial()).isEqualTo(40730);
-    }
-
-    private static int sumOfOfAllNumbersWhichAreEqualToSumOfDigitFactorial() {
-        return Stream.rangeClosed(3, 2_540_160) // 9! * 7 = 2 540 160 is a seven digit number, as is 9! * 8, therefor 9! * 7 is the definitive upper limit we have to investigate.
-                .filter(i -> i == sumOfDigitFactorial(i))
-                .sum().intValue();
-    }
-
-    private static int sumOfDigitFactorial(int num) {
-        return CharSeq.of(Integer.toString(num))
-                .map(c -> Character.digit(c, 10))
-                .map(MEMOIZED_FACTORIAL)
-                .sum().intValue();
     }
 }

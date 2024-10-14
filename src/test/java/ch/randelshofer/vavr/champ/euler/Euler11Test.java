@@ -28,9 +28,9 @@ package ch.randelshofer.vavr.champ.euler;
 
 import io.vavr.Tuple;
 import io.vavr.collection.Iterator;
+import io.vavr.collection.List;
 import io.vavr.collection.Seq;
 import io.vavr.collection.Stream;
-import io.vavr.collection.List;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,7 +58,24 @@ public class Euler11Test {
             20, 69, 36, 41, 72, 30, 23, 88, 34, 62, 99, 69, 82, 67, 59, 85, 74, 4, 36, 16,
             20, 73, 35, 29, 78, 31, 90, 1, 74, 31, 49, 71, 48, 86, 81, 16, 23, 57, 5, 54,
             1, 70, 54, 71, 83, 51, 54, 69, 16, 92, 33, 48, 61, 43, 52, 1, 89, 19, 67, 48
-            ).grouped(20).toList();
+    ).grouped(20).toList();
+
+    private static int maxProduct() {
+        return List.of(Tuple.of(0, 1), Tuple.of(1, 1), Tuple.of(1, 0), Tuple.of(1, -1))
+                .map(d -> maxProduct(d._1, d._2)).max().get();
+    }
+
+    private static int maxProduct(int dr, int dc) {
+        return range(dr).crossProduct(range(dc)).map(rc -> product(rc._1, rc._2, dr, dc)).max().get();
+    }
+
+    private static int product(int row, int col, int dr, int dc) {
+        return Stream.range(0, 4).map(i -> MATRIX.get(row + i * dr).get(col + i * dc)).reduce((i1, i2) -> i1 * i2);
+    }
+
+    private static List<Integer> range(int d) {
+        return List.range(0, 20).filter(i -> i + 3 * d >= 0 && i + 3 * d < 20);
+    }
 
     /**
      * <strong>Problem 11: Largest product in a grid</strong>
@@ -95,23 +112,6 @@ public class Euler11Test {
     @Test
     public void shouldSolveProblem11() {
         assertThat(maxProduct()).isEqualTo(70_600_674);
-    }
-
-    private static int maxProduct() {
-        return List.of(Tuple.of(0, 1), Tuple.of(1, 1), Tuple.of(1, 0), Tuple.of(1, -1))
-                .map(d -> maxProduct(d._1, d._2)).max().get();
-    }
-
-    private static int maxProduct(int dr, int dc) {
-        return range(dr).crossProduct(range(dc)).map(rc -> product(rc._1, rc._2, dr, dc)).max().get();
-    }
-
-    private static List<Integer> range(int d) {
-        return List.range(0, 20).filter(i -> i + 3 * d >= 0 && i + 3 * d < 20);
-    }
-
-    private static int product(int row, int col, int dr, int dc) {
-        return Stream.range(0, 4).map(i -> MATRIX.get(row + i * dr).get(col + i * dc)).reduce((i1, i2) -> i1 * i2);
     }
 
 }

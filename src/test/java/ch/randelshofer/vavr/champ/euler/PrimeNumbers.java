@@ -26,8 +26,8 @@
  */
 package ch.randelshofer.vavr.champ.euler;
 
-import io.vavr.Tuple;
 import ch.randelshofer.vavr.champ.ChampMap;
+import io.vavr.Tuple;
 import io.vavr.collection.Set;
 import io.vavr.collection.Stream;
 import io.vavr.collection.TreeSet;
@@ -37,10 +37,6 @@ final class PrimeNumbers {
     private static final Set<Integer> PRIMES_2_000_000 = Sieve.fillSieve(2_000_000, TreeSet.empty());
 
     private PrimeNumbers() {
-    }
-
-    static Stream<Integer> primes() {
-        return Stream.ofAll(PRIMES_2_000_000);
     }
 
     static ChampMap<Long, Long> factorization(long num) {
@@ -59,5 +55,9 @@ final class PrimeNumbers {
                 .find(d -> num % d == 0)
                 .map(d -> Stream.cons(d, () -> primeFactors(num / d)))
                 .getOrElse(() -> Stream.of(num));
+    }
+
+    static Stream<Integer> primes() {
+        return Stream.ofAll(PRIMES_2_000_000);
     }
 }

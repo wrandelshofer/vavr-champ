@@ -30,10 +30,41 @@ import io.vavr.collection.CharSeq;
 import io.vavr.collection.List;
 import org.junit.jupiter.api.Test;
 
-import static io.vavr.API.*;
+import static io.vavr.API.$;
+import static io.vavr.API.Case;
+import static io.vavr.API.Match;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler38Test {
+
+    private static boolean isPandigitalMultiple(CharSeq pandigital) {
+        return List.rangeClosed(1, pandigital.length() - 1)
+                .exists(i -> isPandigitalMultipleRest(pandigital.drop(i), Integer.valueOf(pandigital.take(i).mkString()), 2));
+    }
+
+    private static boolean isPandigitalMultipleRest(CharSeq pandigitalRest, int multiplicand, int multiplicator) {
+        return Match(pandigitalRest.length()).of(
+                Case($(0), true),
+                Case($(), length -> List.rangeClosed(1, length)
+                        .find(i -> Integer.valueOf(pandigitalRest.take(i).mkString()) == multiplicand * multiplicator)
+                        .map(i -> isPandigitalMultipleRest(pandigitalRest.drop(i), multiplicand, multiplicator + 1))
+                        .getOrElse(false)
+                )
+        );
+    }
+
+    private static CharSeq largest1To9PandigitalMultiple() {
+        return CharSeq.of("87654321")
+                .permutations()
+                .map(CharSeq::mkString)
+                .map(Integer::valueOf)
+                .sorted()
+                .reverse()
+                .map(i -> "9" + i) // Since 918273645 is known we don't have to investigate numbers not starting with a 9.
+                .map(CharSeq::of)
+                .find(Euler38Test::isPandigitalMultiple)
+                .get();
+    }
 
     /**
      * <strong>Problem 38 Pandigital multiples</strong>
@@ -65,34 +96,5 @@ public class Euler38Test {
         assertThat(isPandigitalMultiple(CharSeq.of("918273645"))).isTrue();
 
         assertThat(largest1To9PandigitalMultiple().mkString()).isEqualTo("932718654");
-    }
-
-    private static CharSeq largest1To9PandigitalMultiple() {
-        return CharSeq.of("87654321")
-                .permutations()
-                .map(CharSeq::mkString)
-                .map(Integer::valueOf)
-                .sorted()
-                .reverse()
-                .map(i -> "9" + i) // Since 918273645 is known we don't have to investigate numbers not starting with a 9.
-                .map(CharSeq::of)
-                .find(Euler38Test::isPandigitalMultiple)
-                .get();
-    }
-
-    private static boolean isPandigitalMultiple(CharSeq pandigital) {
-        return List.rangeClosed(1, pandigital.length() - 1)
-                .exists(i -> isPandigitalMultipleRest(pandigital.drop(i), Integer.valueOf(pandigital.take(i).mkString()), 2));
-    }
-
-    private static boolean isPandigitalMultipleRest(CharSeq pandigitalRest, int multiplicand, int multiplicator) {
-        return Match(pandigitalRest.length()).of(
-                Case($(0), true),
-                Case($(), length -> List.rangeClosed(1, length)
-                        .find(i -> Integer.valueOf(pandigitalRest.take(i).mkString()) == multiplicand * multiplicator)
-                        .map(i -> isPandigitalMultipleRest(pandigitalRest.drop(i), multiplicand, multiplicator + 1))
-                        .getOrElse(false)
-                )
-        );
     }
 }

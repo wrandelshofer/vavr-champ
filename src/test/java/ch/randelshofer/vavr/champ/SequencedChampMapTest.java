@@ -25,16 +25,6 @@ public class SequencedChampMapTest extends AbstractMapTest {
     }
 
     @Override
-  protected  <T1, T2> java.util.Map<T1, T2> javaEmptyMap() {
-        return new java.util.LinkedHashMap<>();
-    }
-
-    @Override
-    protected <T1 extends Comparable<? super T1>, T2> SequencedChampMap<T1, T2> emptyMap() {
-        return SequencedChampMap.empty();
-    }
-
-    @Override
     protected <K extends Comparable<? super K>, V, T extends V> Collector<T, ArrayList<T>, ? extends Map<K, V>> collectorWithMapper(Function<? super T, ? extends K> keyMapper) {
         return SequencedChampMap.collector(keyMapper);
     }
@@ -45,27 +35,23 @@ public class SequencedChampMapTest extends AbstractMapTest {
     }
 
     @Override
+    protected <T1 extends Comparable<? super T1>, T2> SequencedChampMap<T1, T2> emptyMap() {
+        return SequencedChampMap.empty();
+    }
+
+    @Override
+    protected <T1, T2> java.util.Map<T1, T2> javaEmptyMap() {
+        return new java.util.LinkedHashMap<>();
+    }
+
+    @Override
     protected <T> Collector<Tuple2<Integer, T>, ArrayList<Tuple2<Integer, T>>, ? extends Map<Integer, T>> mapCollector() {
         return SequencedChampMap.collector();
     }
 
-    @SuppressWarnings("varargs")
-    @SafeVarargs
     @Override
-    protected final <K extends Comparable<? super K>, V> SequencedChampMap<K, V> mapOfTuples(Tuple2<? extends K, ? extends V>... entries) {
-        return SequencedChampMap.ofEntries(entries);
-    }
-
-    @Override
-    protected <K extends Comparable<? super K>, V> Map<K, V> mapOfTuples(Iterable<? extends Tuple2<? extends K, ? extends V>> entries) {
-        return SequencedChampMap.ofEntries(entries);
-    }
-
-    @SuppressWarnings("varargs")
-    @SafeVarargs
-    @Override
-    protected final <K extends Comparable<? super K>, V> SequencedChampMap<K, V> mapOfEntries(java.util.Map.Entry<? extends K, ? extends V>... entries) {
-        return SequencedChampMap.ofEntries(entries);
+    protected <K extends Comparable<? super K>, V> SequencedChampMap<K, V> mapFill(int n, Supplier<? extends Tuple2<? extends K, ? extends V>> s) {
+        return SequencedChampMap.fill(n, s);
     }
 
     @Override
@@ -93,6 +79,13 @@ public class SequencedChampMapTest extends AbstractMapTest {
         return SequencedChampMap.ofAll(stream, f);
     }
 
+    @SuppressWarnings("varargs")
+    @SafeVarargs
+    @Override
+    protected final <K extends Comparable<? super K>, V> SequencedChampMap<K, V> mapOfEntries(java.util.Map.Entry<? extends K, ? extends V>... entries) {
+        return SequencedChampMap.ofEntries(entries);
+    }
+
     protected <K extends Comparable<? super K>, V> Map<K, V> mapOfNullKey(K k1, V v1, K k2, V v2) {
         return mapOf(k1, v1, k2, v2);
     }
@@ -102,49 +95,27 @@ public class SequencedChampMapTest extends AbstractMapTest {
         return mapOf(k1, v1, k2, v2, k3, v3);
     }
 
+    @SuppressWarnings("varargs")
+    @SafeVarargs
+    @Override
+    protected final <K extends Comparable<? super K>, V> SequencedChampMap<K, V> mapOfTuples(Tuple2<? extends K, ? extends V>... entries) {
+        return SequencedChampMap.ofEntries(entries);
+    }
+
+    @Override
+    protected <K extends Comparable<? super K>, V> Map<K, V> mapOfTuples(Iterable<? extends Tuple2<? extends K, ? extends V>> entries) {
+        return SequencedChampMap.ofEntries(entries);
+    }
+
     @Override
     protected <K extends Comparable<? super K>, V> SequencedChampMap<K, V> mapTabulate(int n, Function<? super Integer, ? extends Tuple2<? extends K, ? extends V>> f) {
         return SequencedChampMap.tabulate(n, f);
     }
 
-    @Override
-    protected <K extends Comparable<? super K>, V> SequencedChampMap<K, V> mapFill(int n, Supplier<? extends Tuple2<? extends K, ? extends V>> s) {
-        return SequencedChampMap.fill(n, s);
-    }
-
     @Test
-    public void shouldKeepOrder() {
-        final List<Character> actual = SequencedChampMap.<Integer, Character> empty().put(3, 'a').put(2, 'b').put(1, 'c').foldLeft(List.empty(), (s, t) -> s.append(t._2));
-        Assertions.assertThat(actual).isEqualTo(List.of('a', 'b', 'c'));
+    public void shouldHaveOrderedSpliterator() {
+        assertThat(of(1, 2, 3).spliterator().hasCharacteristics(Spliterator.ORDERED)).isTrue();
     }
-
-    @Test
-    public void shouldKeepValuesOrder() {
-        final List<Character> actual = SequencedChampMap.<Integer, Character> empty().put(3, 'a').put(2, 'b').put(1, 'c').values().foldLeft(List.empty(), List::append);
-        Assertions.assertThat(actual).isEqualTo(List.of('a', 'b', 'c'));
-    }
-
-    // -- static narrow
-
-    @Test
-    public void shouldNarrowLinkedHashMap() {
-        final SequencedChampMap<Integer, Double> int2doubleMap = mapOf(1, 1.0d);
-        final SequencedChampMap<Number, Number> number2numberMap = SequencedChampMap.narrow(int2doubleMap);
-        final int actual = number2numberMap.put(new BigDecimal("2"), new BigDecimal("2.0")).values().sum().intValue();
-        assertThat(actual).isEqualTo(3);
-    }
-
-    // -- static ofAll(Iterable)
-
-    @Test
-    public void shouldWrapMap() {
-        final java.util.Map<Integer, Integer> source = new java.util.HashMap<>();
-        source.put(1, 2);
-        source.put(3, 4);
-        assertThat(SequencedChampMap.ofAll(source)).isEqualTo(emptyIntInt().put(1, 2).put(3, 4));
-    }
-
-    // -- keySet
 
     @Test
     public void shouldKeepKeySetOrder() {
@@ -152,25 +123,15 @@ public class SequencedChampMapTest extends AbstractMapTest {
         assertThat(keySet.mkString()).isEqualTo("412");
     }
 
-    // -- map
+    // -- static narrow
 
     @Test
-    public void shouldReturnModifiedKeysMapWithNonUniqueMapperAndPredictableOrder() {
-        final Map<Integer, String> actual = SequencedChampMap.of(3, "3").put(1, "1").put(2, "2")
-                .mapKeys(Integer::toHexString).mapKeys(String::length);
-        final Map<Integer, String> expected = SequencedChampMap.of(1, "2");
-        assertThat(actual).isEqualTo(expected);
+    public void shouldKeepOrder() {
+        final List<Character> actual = SequencedChampMap.<Integer, Character>empty().put(3, 'a').put(2, 'b').put(1, 'c').foldLeft(List.empty(), (s, t) -> s.append(t._2));
+        Assertions.assertThat(actual).isEqualTo(List.of('a', 'b', 'c'));
     }
 
-    // -- put
-
-    @Test
-    public void shouldKeepOrderWhenPuttingAnExistingKeyAndNonExistingValue() {
-        final Map<Integer, String> map = mapOf(1, "a", 2, "b", 3, "c");
-        final Map<Integer, String> actual = map.put(1, "d");
-        final Map<Integer, String> expected = mapOf(1, "d", 2, "b", 3, "c");
-        assertThat(actual.toList()).isEqualTo(expected.toList());
-    }
+    // -- static ofAll(Iterable)
 
     @Test
     public void shouldKeepOrderWhenPuttingAnExistingKeyAndExistingValue() {
@@ -180,27 +141,46 @@ public class SequencedChampMapTest extends AbstractMapTest {
         assertThat(actual.toList()).isEqualTo(expected.toList());
     }
 
+    // -- keySet
+
+    @Test
+    public void shouldKeepOrderWhenPuttingAnExistingKeyAndNonExistingValue() {
+        final Map<Integer, String> map = mapOf(1, "a", 2, "b", 3, "c");
+        final Map<Integer, String> actual = map.put(1, "d");
+        final Map<Integer, String> expected = mapOf(1, "d", 2, "b", 3, "c");
+        assertThat(actual.toList()).isEqualTo(expected.toList());
+    }
+
+    // -- map
+
+    @Test
+    public void shouldKeepValuesOrder() {
+        final List<Character> actual = SequencedChampMap.<Integer, Character>empty().put(3, 'a').put(2, 'b').put(1, 'c').values().foldLeft(List.empty(), List::append);
+        Assertions.assertThat(actual).isEqualTo(List.of('a', 'b', 'c'));
+    }
+
+    // -- put
+
+    @Test
+    public void shouldNarrowLinkedHashMap() {
+        final SequencedChampMap<Integer, Double> int2doubleMap = mapOf(1, 1.0d);
+        final SequencedChampMap<Number, Number> number2numberMap = SequencedChampMap.narrow(int2doubleMap);
+        final int actual = number2numberMap.put(new BigDecimal("2"), new BigDecimal("2.0")).values().sum().intValue();
+        assertThat(actual).isEqualTo(3);
+    }
+
+    @Test
+    public void shouldNotHaveSortedSpliterator() {
+        assertThat(of(1, 2, 3).spliterator().hasCharacteristics(Spliterator.SORTED)).isFalse();
+    }
+
     // -- replace
 
     @Test
-    public void shouldReturnSameInstanceIfReplacingNonExistingPairUsingNonExistingKey() {
-        final Map<Integer, String> map = SequencedChampMap.of(1, "a", 2, "b");
-        final Map<Integer, String> actual = map.replace(Tuple.of(0, "?"), Tuple.of(0, "!"));
-        assertThat(actual).isSameAs(map);
-    }
-
-    @Test
-    public void shouldReturnSameInstanceIfReplacingNonExistingPairUsingExistingKey() {
-        final Map<Integer, String> map = SequencedChampMap.of(1, "a", 2, "b");
-        final Map<Integer, String> actual = map.replace(Tuple.of(2, "?"), Tuple.of(2, "!"));
-        assertThat(actual).isSameAs(map);
-    }
-
-    @Test
-    public void shouldPreserveOrderWhenReplacingExistingPairWithSameKeyAndDifferentValue() {
-        final Map<Integer, String> map = SequencedChampMap.of(1, "a", 2, "b", 3, "c");
-        final Map<Integer, String> actual = map.replace(Tuple.of(2, "b"), Tuple.of(2, "B"));
-        final Map<Integer, String> expected = SequencedChampMap.of(1, "a", 2, "B", 3, "c");
+    public void shouldPreserveOrderWhenReplacingExistingPairAndRemoveOtherIfKeyAlreadyExists() {
+        final Map<Integer, String> map = SequencedChampMap.of(1, "a", 2, "b", 3, "c", 4, "d", 5, "e");
+        final Map<Integer, String> actual = map.replace(Tuple.of(2, "b"), Tuple.of(4, "B"));
+        final Map<Integer, String> expected = SequencedChampMap.of(1, "a", 4, "B", 3, "c", 5, "e");
         assertThat(actual).isEqualTo(expected);
         Assertions.assertThat(List.ofAll(actual)).isEqualTo(List.ofAll(expected));
     }
@@ -215,13 +195,37 @@ public class SequencedChampMapTest extends AbstractMapTest {
     }
 
     @Test
-    public void shouldPreserveOrderWhenReplacingExistingPairAndRemoveOtherIfKeyAlreadyExists() {
-        final Map<Integer, String> map = SequencedChampMap.of(1, "a", 2, "b", 3, "c", 4, "d", 5, "e");
-        final Map<Integer, String> actual = map.replace(Tuple.of(2, "b"), Tuple.of(4, "B"));
-        final Map<Integer, String> expected = SequencedChampMap.of(1, "a", 4, "B", 3, "c", 5, "e");
+    public void shouldPreserveOrderWhenReplacingExistingPairWithSameKeyAndDifferentValue() {
+        final Map<Integer, String> map = SequencedChampMap.of(1, "a", 2, "b", 3, "c");
+        final Map<Integer, String> actual = map.replace(Tuple.of(2, "b"), Tuple.of(2, "B"));
+        final Map<Integer, String> expected = SequencedChampMap.of(1, "a", 2, "B", 3, "c");
         assertThat(actual).isEqualTo(expected);
         Assertions.assertThat(List.ofAll(actual)).isEqualTo(List.ofAll(expected));
     }
+
+    @Test
+    public void shouldReturnModifiedKeysMapWithNonUniqueMapperAndPredictableOrder() {
+        final Map<Integer, String> actual = SequencedChampMap.of(3, "3").put(1, "1").put(2, "2")
+                .mapKeys(Integer::toHexString).mapKeys(String::length);
+        final Map<Integer, String> expected = SequencedChampMap.of(1, "2");
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void shouldReturnSameInstanceIfReplacingNonExistingPairUsingExistingKey() {
+        final Map<Integer, String> map = SequencedChampMap.of(1, "a", 2, "b");
+        final Map<Integer, String> actual = map.replace(Tuple.of(2, "?"), Tuple.of(2, "!"));
+        assertThat(actual).isSameAs(map);
+    }
+
+    @Test
+    public void shouldReturnSameInstanceIfReplacingNonExistingPairUsingNonExistingKey() {
+        final Map<Integer, String> map = SequencedChampMap.of(1, "a", 2, "b");
+        final Map<Integer, String> actual = map.replace(Tuple.of(0, "?"), Tuple.of(0, "!"));
+        assertThat(actual).isSameAs(map);
+    }
+
+    // -- scan, scanLeft, scanRight
 
     @Test
     public void shouldReturnSameInstanceWhenReplacingExistingPairWithIdentity() {
@@ -230,11 +234,14 @@ public class SequencedChampMapTest extends AbstractMapTest {
         assertThat(actual).isSameAs(map);
     }
 
-    // -- scan, scanLeft, scanRight
+    @Test
+    public void shouldReturnTrueWhenIsSequentialCalled() {
+        assertThat(SequencedChampMap.of(1, 2, 3, 4).isSequential()).isTrue();
+    }
 
     @Test
     public void shouldScan() {
-        final Map<Integer, String> map = this.<Integer, String> emptyMap()
+        final Map<Integer, String> map = this.<Integer, String>emptyMap()
                 .put(Tuple.of(1, "a"))
                 .put(Tuple.of(2, "b"))
                 .put(Tuple.of(3, "c"))
@@ -248,9 +255,11 @@ public class SequencedChampMapTest extends AbstractMapTest {
                 .put(10, "xabcd"));
     }
 
+    // -- spliterator
+
     @Test
     public void shouldScanLeft() {
-        final Map<Integer, String> map = this.<Integer, String> emptyMap()
+        final Map<Integer, String> map = this.<Integer, String>emptyMap()
                 .put(Tuple.of(1, "a"))
                 .put(Tuple.of(2, "b"))
                 .put(Tuple.of(3, "c"))
@@ -266,7 +275,7 @@ public class SequencedChampMapTest extends AbstractMapTest {
 
     @Test
     public void shouldScanRight() {
-        final Map<Integer, String> map = this.<Integer, String> emptyMap()
+        final Map<Integer, String> map = this.<Integer, String>emptyMap()
                 .put(Tuple.of(1, "a"))
                 .put(Tuple.of(2, "b"))
                 .put(Tuple.of(3, "c"))
@@ -280,23 +289,14 @@ public class SequencedChampMapTest extends AbstractMapTest {
                 Tuple.of(0, "x")));
     }
 
-    // -- spliterator
-
-    @Test
-    public void shouldNotHaveSortedSpliterator() {
-        assertThat(of(1, 2, 3).spliterator().hasCharacteristics(Spliterator.SORTED)).isFalse();
-    }
-
-    @Test
-    public void shouldHaveOrderedSpliterator() {
-        assertThat(of(1, 2, 3).spliterator().hasCharacteristics(Spliterator.ORDERED)).isTrue();
-    }
-
     // -- isSequential()
 
     @Test
-    public void shouldReturnTrueWhenIsSequentialCalled() {
-        assertThat(SequencedChampMap.of(1, 2, 3, 4).isSequential()).isTrue();
+    public void shouldWrapMap() {
+        final java.util.Map<Integer, Integer> source = new java.util.HashMap<>();
+        source.put(1, 2);
+        source.put(3, 4);
+        assertThat(SequencedChampMap.ofAll(source)).isEqualTo(emptyIntInt().put(1, 2).put(3, 4));
     }
 
 }

@@ -36,6 +36,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler67Test {
 
+    static Vector<Vector<Integer>> loadTriangle(String fileName) {
+        return Vector.ofAll(
+                Utils.readLines(Utils.file(fileName)).map(line ->
+                        Arrays.stream(line.split("\\s")).map(Integer::parseInt)
+                ).map(s -> Vector.ofAll(s::iterator))
+        );
+    }
+
+    private static int solve(String fileName) {
+        return smart.apply(loadTriangle(fileName), 0, 0);
+    }
+
     /**
      * <strong>Problem 67: Maximum path sum II</strong>
      * <p>
@@ -60,10 +72,6 @@ public class Euler67Test {
         assertThat(solve("p067_triangle.txt")).isEqualTo(7273);
     }
 
-    private static int solve(String fileName) {
-        return smart.apply(loadTriangle(fileName), 0, 0);
-    }
-
     private final static Function3<Vector<Vector<Integer>>, Integer, Integer, Integer> smart = Function3.of(
             (Vector<Vector<Integer>> tr, Integer row, Integer col) -> {
                 int value = tr.get(row).get(col);
@@ -75,11 +83,5 @@ public class Euler67Test {
             }
     ).memoized();
 
-    static Vector<Vector<Integer>> loadTriangle(String fileName) {
-        return Vector.ofAll(
-                Utils.readLines(Utils.file(fileName)).map(line ->
-                        Arrays.stream(line.split("\\s")).map(Integer::parseInt)
-                ).map(s -> Vector.ofAll(s::iterator))
-        );
-    }
+
 }

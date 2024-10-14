@@ -26,14 +26,32 @@
  */
 package ch.randelshofer.vavr.champ.euler;
 
-import io.vavr.collection.Stream;
 import io.vavr.collection.List;
+import io.vavr.collection.Stream;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class Euler45Test {
+
+    private static final Stream<Long> HEXAGONAL = Stream.from(2L).map(i -> i * (2 * i - 1));
+
+    private static long flooredRoot(long i) {
+        return (long) Math.sqrt(i + 0.5);
+    }
+
+    private static boolean isPentagonal(long i) {
+        // If a number k is pentagonal then n(3n−1)/2 = k; for some integer n
+        // by the quadratic formula (1+sqrt(1+4*3*2k))/6 = n
+        long discriminant = 1 + 24 * i;
+        return isPerfectSquare(discriminant) && (1 + flooredRoot(discriminant)) % 6 == 0;
+    }
+
+    private static boolean isPerfectSquare(long i) {
+        long sqrtFloor = flooredRoot(i);
+        return sqrtFloor * sqrtFloor == i;
+    }
 
     /**
      * <strong>Problem 45 Triangular, pentagonal, and hexagonal</strong>
@@ -47,7 +65,7 @@ public class Euler45Test {
      * It can be verified that T285 = P165 = H143 = 40755.
      * Find the next triangle number that is also pentagonal and hexagonal.
      * </p>
-     *
+     * <p>
      * See also <a href="https://projecteuler.net/problem=45">projecteuler.net
      * problem 45</a>.
      */
@@ -68,23 +86,5 @@ public class Euler45Test {
                 .tail()
                 .head())
                 .isEqualTo(1533776805L);
-    }
-
-    private static final Stream<Long> HEXAGONAL = Stream.from(2L).map(i -> i*(2*i -1));
-
-    private static boolean isPentagonal(long i) {
-        // If a number k is pentagonal then n(3n−1)/2 = k; for some integer n
-        // by the quadratic formula (1+sqrt(1+4*3*2k))/6 = n
-        long discriminant = 1+24*i;
-        return isPerfectSquare(discriminant) && (1 + flooredRoot(discriminant)) % 6 == 0;
-    }
-
-    private static boolean isPerfectSquare(long i) {
-        long sqrtFloor = flooredRoot(i);
-        return sqrtFloor*sqrtFloor == i;
-    }
-
-    private static long flooredRoot(long i) {
-        return (long)Math.sqrt(i+0.5);
     }
 }

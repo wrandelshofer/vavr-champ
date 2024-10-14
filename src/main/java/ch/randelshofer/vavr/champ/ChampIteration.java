@@ -60,17 +60,28 @@ class ChampIteration {
      */
     static class IteratorFacade<E> implements Iterator<E>, Consumer<E> {
         private final Spliterator<E> spliterator;
+        boolean hasCurrent = false;
+        E current;
 
         IteratorFacade(Spliterator<E> spliterator) {
             this.spliterator = spliterator;
         }
 
-        boolean hasCurrent = false;
-        E current;
-
         public void accept(E t) {
             hasCurrent = true;
             current = t;
+        }
+
+        @Override
+        public void forEachRemaining(Consumer<? super E> action) {
+            Objects.requireNonNull(action);
+            if (hasCurrent) {
+                hasCurrent = false;
+                E t = current;
+                current = null;
+                action.accept(t);
+            }
+            spliterator.forEachRemaining(action);
         }
 
         @Override
@@ -91,18 +102,6 @@ class ChampIteration {
                 current = null;
                 return t;
             }
-        }
-
-        @Override
-        public void forEachRemaining(Consumer<? super E> action) {
-            Objects.requireNonNull(action);
-            if (hasCurrent) {
-                hasCurrent = false;
-                E t = current;
-                current = null;
-                action.accept(t);
-            }
-            spliterator.forEachRemaining(action);
         }
     }
 
