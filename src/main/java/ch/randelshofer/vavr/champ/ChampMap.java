@@ -28,6 +28,8 @@ package ch.randelshofer.vavr.champ;
 
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
+import io.vavr.Value;
+import io.vavr.collection.Set;
 import io.vavr.collection.Stream;
 import io.vavr.collection.Traversable;
 import io.vavr.control.Option;
@@ -121,7 +123,7 @@ import static ch.randelshofer.vavr.champ.ChampTrie.BitmapIndexedNode.emptyNode;
  * @param <K> the key type
  * @param <V> the value type
  */
-public class ChampMap<K, V> implements io.vavr.collection.Map<K, V>, Serializable {
+public class ChampMap<K, V> implements io.vavr.collection.Map<K, V>, Serializable, Value<Tuple2<K, V>> {
     /**
      * We do not guarantee an iteration order. Make sure that nobody accidentally relies on it.
      * <p>
@@ -728,7 +730,7 @@ public class ChampMap<K, V> implements io.vavr.collection.Map<K, V>, Serializabl
 
     @Override
     public <C> io.vavr.collection.Map<C, ChampMap<K, V>> groupBy(Function<? super Tuple2<K, V>, ? extends C> classifier) {
-        return Maps.groupBy(this, this::createFromEntries, classifier);
+        return Maps.groupBy(this, this::createFromEntries, classifier, SequencedChampMap.empty());
     }
 
     @Override
@@ -1341,5 +1343,15 @@ public class ChampMap<K, V> implements io.vavr.collection.Map<K, V>, Serializabl
                     ? empty()
                     : new ChampMap<>(root, size);
         }
+    }
+
+    @Override
+    public Set<Tuple2<K, V>> toSet() {
+        return (io.vavr.collection.Set) ValueModule.toTraversable(this, ChampSet.empty(), ChampSet::of, ChampSet::ofAll);
+    }
+
+    @Override
+    public Set<Tuple2<K, V>> toLinkedSet() {
+        return (io.vavr.collection.Set) ValueModule.toTraversable(this, SequencedChampSet.empty(), SequencedChampSet::of, SequencedChampSet::ofAll);
     }
 }

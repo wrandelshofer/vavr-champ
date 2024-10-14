@@ -237,10 +237,10 @@ final class Collections {
                 .map(entry -> entry._2);
     }
 
-    static <T, C, R extends Iterable<T>> io.vavr.collection.Map<C, R> groupBy(Traversable<T> source, Function<? super T, ? extends C> classifier, Function<? super Iterable<T>, R> mapper) {
+    static <T, C, R extends Iterable<T>> io.vavr.collection.Map<C, R> groupBy(Traversable<T> source, Function<? super T, ? extends C> classifier, Function<? super Iterable<T>, R> mapper, io.vavr.collection.Map<C, R> emptySequencedMap) {
         Objects.requireNonNull(classifier, "classifier is null");
         Objects.requireNonNull(mapper, "mapper is null");
-        io.vavr.collection.Map<C, R> results = io.vavr.collection.LinkedHashMap.empty();
+        io.vavr.collection.Map<C, R> results = emptySequencedMap;
         for (Map.Entry<? extends C, Collection<T>> entry : groupBy(source, classifier)) {
             results = results.put(entry.getKey(), mapper.apply(entry.getValue()));
         }

@@ -209,5 +209,4 @@ public class ChampMapTest extends AbstractMapTest {
         source.put(3, 4);
         assertThat(ChampMap.ofAll(source)).isEqualTo(emptyIntInt().put(1, 2).put(3, 4));
     }
-
 }

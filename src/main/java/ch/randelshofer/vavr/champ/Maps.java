@@ -177,8 +177,8 @@ final class Maps {
     }
 
     static <K, V, C, M extends Map<K, V>> Map<C, M> groupBy(M map, OfEntries<K, V, M> ofEntries,
-                                                            Function<? super Tuple2<K, V>, ? extends C> classifier) {
-        return Collections.groupBy(map, classifier, ofEntries);
+                                                            Function<? super Tuple2<K, V>, ? extends C> classifier, Map<C, M> emptySequencedMap) {
+        return Collections.groupBy(map, classifier, ofEntries, emptySequencedMap);
     }
 
     static <K, V, M extends Map<K, V>> Iterator<M> grouped(M map, OfEntries<K, V, M> ofEntries, int size) {

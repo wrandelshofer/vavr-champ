@@ -747,7 +747,7 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
 
     @Override
     public <C> Map<C, SequencedChampSet<T>> groupBy(Function<? super T, ? extends C> classifier) {
-        return Collections.groupBy(this, classifier, SequencedChampSet::ofAll);
+        return Collections.groupBy(this, classifier, SequencedChampSet::ofAll, SequencedChampMap.empty());
     }
 
     @Override
@@ -1484,5 +1484,43 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
                 return true;
             }
         }
+    }
+
+
+    @Override
+    public Set<T> toSet() {
+        return this;
+    }
+
+    @Override
+    public <K, V> Map<K, V> toMap(Function<? super T, ? extends Tuple2<? extends K, ? extends V>> f) {
+        Objects.requireNonNull(f, "f is null");
+        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = ChampMap::of;
+        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = ChampMap::ofEntries;
+        return ValueModule.toMap(this, ChampMap.empty(), ofElement, ofAll, f);
+
+    }
+
+    @Override
+    public <K, V> Map<K, V> toLinkedMap(Function<? super T, ? extends Tuple2<? extends K, ? extends V>> f) {
+        Objects.requireNonNull(f, "f is null");
+        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = SequencedChampMap::of;
+        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = SequencedChampMap::ofEntries;
+        return ValueModule.toMap(this, SequencedChampMap.empty(), ofElement, ofAll, f);
+    }
+
+    @Override
+    public <K, V> Map<K, V> toLinkedMap(Function<? super T, ? extends K> keyMapper, Function<? super T, ? extends V> valueMapper) {
+        return Set.super.toLinkedMap(keyMapper, valueMapper);
+    }
+
+    @Override
+    public Set<T> toLinkedSet() {
+        return (io.vavr.collection.Set) ValueModule.toTraversable(this, SequencedChampSet.empty(), SequencedChampSet::of, SequencedChampSet::ofAll);
+    }
+
+    @Override
+    public <K, V> Map<K, V> toMap(Function<? super T, ? extends K> keyMapper, Function<? super T, ? extends V> valueMapper) {
+        return Set.super.toMap(keyMapper, valueMapper);
     }
 }

@@ -29,6 +29,7 @@ package ch.randelshofer.vavr.champ;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
 import io.vavr.collection.Seq;
+import io.vavr.collection.Set;
 import io.vavr.control.Option;
 
 import java.io.IOException;
@@ -781,7 +782,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
 
     @Override
     public <C> io.vavr.collection.Map<C, SequencedChampMap<K, V>> groupBy(Function<? super Tuple2<K, V>, ? extends C> classifier) {
-        return Maps.groupBy(this, this::createFromEntries, classifier);
+        return Maps.groupBy(this, this::createFromEntries, classifier, empty());
     }
 
     @Override
@@ -1540,4 +1541,15 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
             }
         }
     }
+
+    @Override
+    public Set<Tuple2<K, V>> toSet() {
+        return (io.vavr.collection.Set) ValueModule.toTraversable(this, ChampSet.empty(), ChampSet::of, ChampSet::ofAll);
+    }
+
+    @Override
+    public Set<Tuple2<K, V>> toLinkedSet() {
+        return (io.vavr.collection.Set) ValueModule.toTraversable(this, SequencedChampSet.empty(), SequencedChampSet::of, SequencedChampSet::ofAll);
+    }
+
 }
