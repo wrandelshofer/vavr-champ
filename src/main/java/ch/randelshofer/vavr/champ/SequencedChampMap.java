@@ -247,8 +247,8 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
      * collections are covariant.
      *
      * @param SequencedChampMap A {@code SequencedChampMap}.
-     * @param <K>           Key type
-     * @param <V>           Value type
+     * @param <K>               Key type
+     * @param <V>               Value type
      * @return the given {@code SequencedChampMap} instance as narrowed type {@code SequencedChampMap<K, V>}.
      */
     @SuppressWarnings("unchecked")
@@ -1264,6 +1264,34 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     }
 
     @Override
+    @SuppressWarnings("rawtypes")
+    public io.vavr.collection.Map toLinkedMap(Function f) {
+        Objects.requireNonNull(f, "f is null");
+        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = SequencedChampMap::of;
+        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = SequencedChampMap::ofEntries;
+        return ValueModule.toMap(this, SequencedChampMap.empty(), ofElement, ofAll, f);
+    }
+
+    @Override
+    public Set<Tuple2<K, V>> toLinkedSet() {
+        return (io.vavr.collection.Set) ValueModule.toTraversable(this, SequencedChampSet.empty(), SequencedChampSet::of, SequencedChampSet::ofAll);
+    }
+
+    @Override
+    @SuppressWarnings("rawtypes")
+    public io.vavr.collection.Map toMap(Function f) {
+        Objects.requireNonNull(f, "f is null");
+        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = ChampMap::of;
+        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = ChampMap::ofEntries;
+        return ValueModule.toMap(this, ChampMap.empty(), ofElement, ofAll, f);
+    }
+
+    @Override
+    public Set<Tuple2<K, V>> toSet() {
+        return (io.vavr.collection.Set) ValueModule.toTraversable(this, ChampSet.empty(), ChampSet::of, ChampSet::ofAll);
+    }
+
+    @Override
     public String toString() {
         return mkString(stringPrefix() + "(", ", ", ")");
     }
@@ -1540,35 +1568,6 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
                 return true;
             }
         }
-    }
-
-    @Override
-    public Set<Tuple2<K, V>> toSet() {
-        return (io.vavr.collection.Set) ValueModule.toTraversable(this, ChampSet.empty(), ChampSet::of, ChampSet::ofAll);
-    }
-
-    @Override
-    public Set<Tuple2<K, V>> toLinkedSet() {
-        return (io.vavr.collection.Set) ValueModule.toTraversable(this, SequencedChampSet.empty(), SequencedChampSet::of, SequencedChampSet::ofAll);
-    }
-
-    @Override
-    @SuppressWarnings("rawtypes")
-    public io.vavr.collection.Map toLinkedMap(Function f) {
-        Objects.requireNonNull(f, "f is null");
-        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = SequencedChampMap::of;
-        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = SequencedChampMap::ofEntries;
-        return ValueModule.toMap(this, SequencedChampMap.empty(), ofElement, ofAll, f);
-    }
-
-
-    @Override
-    @SuppressWarnings("rawtypes")
-    public io.vavr.collection.Map toMap(Function f) {
-        Objects.requireNonNull(f, "f is null");
-        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = ChampMap::of;
-        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = ChampMap::ofEntries;
-        return ValueModule.toMap(this, ChampMap.empty(), ofElement, ofAll, f);
     }
 
 }

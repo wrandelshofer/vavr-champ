@@ -985,6 +985,33 @@ public final class ChampSet<T> implements Set<T>, Serializable {
     }
 
     @Override
+    public <K, V> Map<K, V> toLinkedMap(Function<? super T, ? extends Tuple2<? extends K, ? extends V>> f) {
+        Objects.requireNonNull(f, "f is null");
+        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = SequencedChampMap::of;
+        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = SequencedChampMap::ofEntries;
+        return ValueModule.toMap(this, SequencedChampMap.empty(), ofElement, ofAll, f);
+    }
+
+    @Override
+    public Set<T> toLinkedSet() {
+        return (io.vavr.collection.Set) ValueModule.toTraversable(this, SequencedChampSet.empty(), SequencedChampSet::of, SequencedChampSet::ofAll);
+    }
+
+    @Override
+    public <K, V> Map<K, V> toMap(Function<? super T, ? extends Tuple2<? extends K, ? extends V>> f) {
+        Objects.requireNonNull(f, "f is null");
+        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = ChampMap::of;
+        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = ChampMap::ofEntries;
+        return ValueModule.toMap(this, ChampMap.empty(), ofElement, ofAll, f);
+
+    }
+
+    @Override
+    public Set<T> toSet() {
+        return this;
+    }
+
+    @Override
     public String toString() {
         return mkString(stringPrefix() + "(", ", ", ")");
     }
@@ -1005,6 +1032,8 @@ public final class ChampSet<T> implements Set<T>, Serializable {
         Objects.requireNonNull(f, "f is null");
         return f.apply(this);
     }
+
+    // -- Object
 
     @SuppressWarnings("unchecked")
     @Override
@@ -1033,7 +1062,8 @@ public final class ChampSet<T> implements Set<T>, Serializable {
         return Tuple.of(ofAll((Iterable) t._1), ofAll((Iterable) t._2), ofAll((Iterable) t._3));
     }
 
-    // -- Object
+
+    // -- Serialization
 
     /**
      * {@code writeReplace} method for the serialization proxy pattern.
@@ -1064,9 +1094,6 @@ public final class ChampSet<T> implements Set<T>, Serializable {
         Objects.requireNonNull(mapper, "mapper is null");
         return ChampSet.ofAll(iterator().zipWith(that, mapper));
     }
-
-
-    // -- Serialization
 
     @Override
     public ChampSet<Tuple2<T, Integer>> zipWithIndex() {
@@ -1322,30 +1349,4 @@ public final class ChampSet<T> implements Set<T>, Serializable {
         }
     }
 
-    @Override
-    public Set<T> toSet() {
-        return this;
-    }
-
-    @Override
-    public <K, V> Map<K, V> toMap(Function<? super T, ? extends Tuple2<? extends K, ? extends V>> f) {
-        Objects.requireNonNull(f, "f is null");
-        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = ChampMap::of;
-        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = ChampMap::ofEntries;
-        return ValueModule.toMap(this, ChampMap.empty(), ofElement, ofAll, f);
-
-    }
-
-    @Override
-    public <K, V> Map<K, V> toLinkedMap(Function<? super T, ? extends Tuple2<? extends K, ? extends V>> f) {
-        Objects.requireNonNull(f, "f is null");
-        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = SequencedChampMap::of;
-        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = SequencedChampMap::ofEntries;
-        return ValueModule.toMap(this, SequencedChampMap.empty(), ofElement, ofAll, f);
-    }
-
-    @Override
-    public Set<T> toLinkedSet() {
-        return (io.vavr.collection.Set) ValueModule.toTraversable(this, SequencedChampSet.empty(), SequencedChampSet::of, SequencedChampSet::ofAll);
-    }
 }
