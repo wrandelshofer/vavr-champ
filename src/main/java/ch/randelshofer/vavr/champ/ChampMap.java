@@ -28,7 +28,6 @@ package ch.randelshofer.vavr.champ;
 
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
-import io.vavr.Value;
 import io.vavr.collection.Set;
 import io.vavr.collection.Stream;
 import io.vavr.collection.Traversable;
@@ -123,7 +122,7 @@ import static ch.randelshofer.vavr.champ.ChampTrie.BitmapIndexedNode.emptyNode;
  * @param <K> the key type
  * @param <V> the value type
  */
-public class ChampMap<K, V> implements io.vavr.collection.Map<K, V>, Serializable, Value<Tuple2<K, V>> {
+public class ChampMap<K, V> implements io.vavr.collection.Map<K, V>, Serializable {
     /**
      * We do not guarantee an iteration order. Make sure that nobody accidentally relies on it.
      * <p>
@@ -1353,5 +1352,24 @@ public class ChampMap<K, V> implements io.vavr.collection.Map<K, V>, Serializabl
     @Override
     public Set<Tuple2<K, V>> toLinkedSet() {
         return (io.vavr.collection.Set) ValueModule.toTraversable(this, SequencedChampSet.empty(), SequencedChampSet::of, SequencedChampSet::ofAll);
+    }
+
+    @Override
+    @SuppressWarnings("rawtypes")
+    public io.vavr.collection.Map toLinkedMap(Function f) {
+        Objects.requireNonNull(f, "f is null");
+        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = SequencedChampMap::of;
+        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = SequencedChampMap::ofEntries;
+        return ValueModule.toMap(this, SequencedChampMap.empty(), ofElement, ofAll, f);
+    }
+
+
+    @Override
+    @SuppressWarnings("rawtypes")
+    public io.vavr.collection.Map toMap(Function f) {
+        Objects.requireNonNull(f, "f is null");
+        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = ChampMap::of;
+        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = ChampMap::ofEntries;
+        return ValueModule.toMap(this, ChampMap.empty(), ofElement, ofAll, f);
     }
 }

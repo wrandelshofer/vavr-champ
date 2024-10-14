@@ -1345,17 +1345,7 @@ public final class ChampSet<T> implements Set<T>, Serializable {
     }
 
     @Override
-    public <K, V> Map<K, V> toLinkedMap(Function<? super T, ? extends K> keyMapper, Function<? super T, ? extends V> valueMapper) {
-        return Set.super.toLinkedMap(keyMapper, valueMapper);
-    }
-
-    @Override
     public Set<T> toLinkedSet() {
         return (io.vavr.collection.Set) ValueModule.toTraversable(this, SequencedChampSet.empty(), SequencedChampSet::of, SequencedChampSet::ofAll);
-    }
-
-    @Override
-    public <K, V> Map<K, V> toMap(Function<? super T, ? extends K> keyMapper, Function<? super T, ? extends V> valueMapper) {
-        return Set.super.toMap(keyMapper, valueMapper);
     }
 }

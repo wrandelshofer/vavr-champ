@@ -246,14 +246,14 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
      * by performing a type-safe cast. This is eligible because immutable/read-only
      * collections are covariant.
      *
-     * @param linkedHashMap A {@code SequencedChampMap}.
+     * @param SequencedChampMap A {@code SequencedChampMap}.
      * @param <K>           Key type
      * @param <V>           Value type
-     * @return the given {@code linkedHashMap} instance as narrowed type {@code SequencedChampMap<K, V>}.
+     * @return the given {@code SequencedChampMap} instance as narrowed type {@code SequencedChampMap<K, V>}.
      */
     @SuppressWarnings("unchecked")
-    public static <K, V> SequencedChampMap<K, V> narrow(SequencedChampMap<? extends K, ? extends V> linkedHashMap) {
-        return (SequencedChampMap<K, V>) linkedHashMap;
+    public static <K, V> SequencedChampMap<K, V> narrow(SequencedChampMap<? extends K, ? extends V> SequencedChampMap) {
+        return (SequencedChampMap<K, V>) SequencedChampMap;
     }
 
     /**
@@ -1550,6 +1550,25 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     @Override
     public Set<Tuple2<K, V>> toLinkedSet() {
         return (io.vavr.collection.Set) ValueModule.toTraversable(this, SequencedChampSet.empty(), SequencedChampSet::of, SequencedChampSet::ofAll);
+    }
+
+    @Override
+    @SuppressWarnings("rawtypes")
+    public io.vavr.collection.Map toLinkedMap(Function f) {
+        Objects.requireNonNull(f, "f is null");
+        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = SequencedChampMap::of;
+        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = SequencedChampMap::ofEntries;
+        return ValueModule.toMap(this, SequencedChampMap.empty(), ofElement, ofAll, f);
+    }
+
+
+    @Override
+    @SuppressWarnings("rawtypes")
+    public io.vavr.collection.Map toMap(Function f) {
+        Objects.requireNonNull(f, "f is null");
+        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = ChampMap::of;
+        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = ChampMap::ofEntries;
+        return ValueModule.toMap(this, ChampMap.empty(), ofElement, ofAll, f);
     }
 
 }
