@@ -145,11 +145,11 @@ import static ch.randelshofer.vavr.champ.ChampTrie.BitmapIndexedNode.emptyNode;
  *
  * @param <T> the element type
  */
-public class SequencedChampSet<T> implements Set<T>, Serializable {
+public class ChampVectorSet<T> implements Set<T>, Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private static final SequencedChampSet<?> EMPTY = new SequencedChampSet<>(
+    private static final ChampVectorSet<?> EMPTY = new ChampVectorSet<>(
             emptyNode(), BitMappedTrie.of(), 0, 0);
     /**
      * Offset of sequence numbers to vector indices.
@@ -167,7 +167,7 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
     final BitMappedTrie<Object> vector;
     private final ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedElement<T>> root;
 
-    SequencedChampSet(
+    ChampVectorSet(
             ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedElement<T>> root,
             BitMappedTrie<Object> vector,
             int size, int offset) {
@@ -179,206 +179,206 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
 
     /**
      * Returns a {@link Collector} which may be used in conjunction with
-     * {@link java.util.stream.Stream#collect(Collector)} to obtain a {@link SequencedChampSet}.
+     * {@link java.util.stream.Stream#collect(Collector)} to obtain a {@link ChampVectorSet}.
      *
-     * @param <T> Component type of the SequencedChampSet.
-     * @return A io.vavr.collection.SequencedChampSet Collector.
+     * @param <T> Component type of the ChampVectorSet.
+     * @return A io.vavr.collection.ChampVectorSet Collector.
      */
-    public static <T> Collector<T, ArrayList<T>, SequencedChampSet<T>> collector() {
-        return Collections.toListAndThen(SequencedChampSet::ofAll);
+    public static <T> Collector<T, ArrayList<T>, ChampVectorSet<T>> collector() {
+        return Collections.toListAndThen(ChampVectorSet::ofAll);
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> SequencedChampSet<T> empty() {
-        return (SequencedChampSet<T>) EMPTY;
+    public static <T> ChampVectorSet<T> empty() {
+        return (ChampVectorSet<T>) EMPTY;
     }
 
     /**
-     * Returns a SequencedChampSet containing tuples returned by {@code n} calls to a given Supplier {@code s}.
+     * Returns a ChampVectorSet containing tuples returned by {@code n} calls to a given Supplier {@code s}.
      *
-     * @param <T> Component type of the SequencedChampSet
-     * @param n   The number of elements in the SequencedChampSet
+     * @param <T> Component type of the ChampVectorSet
+     * @param n   The number of elements in the ChampVectorSet
      * @param s   The Supplier computing element values
-     * @return A SequencedChampSet of size {@code n}, where each element contains the result supplied by {@code s}.
+     * @return A ChampVectorSet of size {@code n}, where each element contains the result supplied by {@code s}.
      * @throws NullPointerException if {@code s} is null
      */
-    public static <T> SequencedChampSet<T> fill(int n, Supplier<? extends T> s) {
+    public static <T> ChampVectorSet<T> fill(int n, Supplier<? extends T> s) {
         Objects.requireNonNull(s, "s is null");
-        return Collections.fill(n, s, SequencedChampSet.empty(), SequencedChampSet::of);
+        return Collections.fill(n, s, ChampVectorSet.empty(), ChampVectorSet::of);
     }
 
     /**
-     * Narrows a widened {@code SequencedChampSet<? extends T>} to {@code SequencedChampSet<T>}
+     * Narrows a widened {@code ChampVectorSet<? extends T>} to {@code ChampVectorSet<T>}
      * by performing a type-safe cast. This is eligible because immutable/read-only
      * collections are covariant.
      *
-     * @param linkedHashSet A {@code SequencedChampSet}.
+     * @param linkedHashSet A {@code ChampVectorSet}.
      * @param <T>           Component type of the {@code linkedHashSet}.
-     * @return the given {@code linkedHashSet} instance as narrowed type {@code SequencedChampSet<T>}.
+     * @return the given {@code linkedHashSet} instance as narrowed type {@code ChampVectorSet<T>}.
      */
     @SuppressWarnings("unchecked")
-    public static <T> SequencedChampSet<T> narrow(SequencedChampSet<? extends T> linkedHashSet) {
-        return (SequencedChampSet<T>) linkedHashSet;
+    public static <T> ChampVectorSet<T> narrow(ChampVectorSet<? extends T> linkedHashSet) {
+        return (ChampVectorSet<T>) linkedHashSet;
     }
 
     /**
-     * Returns a singleton {@code SequencedChampSet}, i.e. a {@code SequencedChampSet} of one element.
+     * Returns a singleton {@code ChampVectorSet}, i.e. a {@code ChampVectorSet} of one element.
      *
      * @param element An element.
      * @param <T>     The component type
-     * @return A new SequencedChampSet instance containing the given element
+     * @return A new ChampVectorSet instance containing the given element
      */
-    public static <T> SequencedChampSet<T> of(T element) {
-        return SequencedChampSet.<T>empty().add(element);
+    public static <T> ChampVectorSet<T> of(T element) {
+        return ChampVectorSet.<T>empty().add(element);
     }
 
     /**
-     * Creates a SequencedChampSet of the given elements.
+     * Creates a ChampVectorSet of the given elements.
      *
-     * <pre><code>SequencedChampSet.of(1, 2, 3, 4)</code></pre>
+     * <pre><code>ChampVectorSet.of(1, 2, 3, 4)</code></pre>
      *
-     * @param <T>      Component type of the SequencedChampSet.
+     * @param <T>      Component type of the ChampVectorSet.
      * @param elements Zero or more elements.
      * @return A set containing the given elements.
      * @throws NullPointerException if {@code elements} is null
      */
     @SafeVarargs
     @SuppressWarnings("varargs")
-    public static <T> SequencedChampSet<T> of(T... elements) {
+    public static <T> ChampVectorSet<T> of(T... elements) {
         Objects.requireNonNull(elements, "elements is null");
-        return SequencedChampSet.<T>empty().addAll(Arrays.asList(elements));
+        return ChampVectorSet.<T>empty().addAll(Arrays.asList(elements));
     }
 
     /**
-     * Creates a SequencedChampSet of the given elements.
+     * Creates a ChampVectorSet of the given elements.
      *
      * @param elements Set elements
      * @param <T>      The value type
-     * @return A new SequencedChampSet containing the given entries
+     * @return A new ChampVectorSet containing the given entries
      */
     @SuppressWarnings("unchecked")
-    public static <T> SequencedChampSet<T> ofAll(Iterable<? extends T> elements) {
+    public static <T> ChampVectorSet<T> ofAll(Iterable<? extends T> elements) {
         Objects.requireNonNull(elements, "elements is null");
-        return elements instanceof SequencedChampSet ? (SequencedChampSet<T>) elements : SequencedChampSet.<T>of().addAll(elements);
+        return elements instanceof ChampVectorSet ? (ChampVectorSet<T>) elements : ChampVectorSet.<T>of().addAll(elements);
     }
 
     /**
-     * Creates a SequencedChampSet that contains the elements of the given {@link java.util.stream.Stream}.
+     * Creates a ChampVectorSet that contains the elements of the given {@link java.util.stream.Stream}.
      *
      * @param javaStream A {@link java.util.stream.Stream}
      * @param <T>        Component type of the Stream.
-     * @return A SequencedChampSet containing the given elements in the same order.
+     * @return A ChampVectorSet containing the given elements in the same order.
      */
-    public static <T> SequencedChampSet<T> ofAll(java.util.stream.Stream<? extends T> javaStream) {
+    public static <T> ChampVectorSet<T> ofAll(java.util.stream.Stream<? extends T> javaStream) {
         Objects.requireNonNull(javaStream, "javaStream is null");
         return ofAll(Iterator.ofAll(javaStream.iterator()));
     }
 
     /**
-     * Creates a SequencedChampSet from boolean values.
+     * Creates a ChampVectorSet from boolean values.
      *
      * @param elements boolean values
-     * @return A new SequencedChampSet of Boolean values
+     * @return A new ChampVectorSet of Boolean values
      * @throws NullPointerException if elements is null
      */
-    public static SequencedChampSet<Boolean> ofAll(boolean... elements) {
+    public static ChampVectorSet<Boolean> ofAll(boolean... elements) {
         Objects.requireNonNull(elements, "elements is null");
-        return SequencedChampSet.ofAll(Iterator.ofAll(elements));
+        return ChampVectorSet.ofAll(Iterator.ofAll(elements));
     }
 
     /**
-     * Creates a SequencedChampSet from byte values.
+     * Creates a ChampVectorSet from byte values.
      *
      * @param elements byte values
-     * @return A new SequencedChampSet of Byte values
+     * @return A new ChampVectorSet of Byte values
      * @throws NullPointerException if elements is null
      */
-    public static SequencedChampSet<Byte> ofAll(byte... elements) {
+    public static ChampVectorSet<Byte> ofAll(byte... elements) {
         Objects.requireNonNull(elements, "elements is null");
-        return SequencedChampSet.ofAll(Iterator.ofAll(elements));
+        return ChampVectorSet.ofAll(Iterator.ofAll(elements));
     }
 
     /**
-     * Creates a SequencedChampSet from char values.
+     * Creates a ChampVectorSet from char values.
      *
      * @param elements char values
-     * @return A new SequencedChampSet of Character values
+     * @return A new ChampVectorSet of Character values
      * @throws NullPointerException if elements is null
      */
-    public static SequencedChampSet<Character> ofAll(char... elements) {
+    public static ChampVectorSet<Character> ofAll(char... elements) {
         Objects.requireNonNull(elements, "elements is null");
-        return SequencedChampSet.ofAll(Iterator.ofAll(elements));
+        return ChampVectorSet.ofAll(Iterator.ofAll(elements));
     }
 
     /**
-     * Creates a SequencedChampSet from double values.
+     * Creates a ChampVectorSet from double values.
      *
      * @param elements double values
-     * @return A new SequencedChampSet of Double values
+     * @return A new ChampVectorSet of Double values
      * @throws NullPointerException if elements is null
      */
-    public static SequencedChampSet<Double> ofAll(double... elements) {
+    public static ChampVectorSet<Double> ofAll(double... elements) {
         Objects.requireNonNull(elements, "elements is null");
-        return SequencedChampSet.ofAll(Iterator.ofAll(elements));
+        return ChampVectorSet.ofAll(Iterator.ofAll(elements));
     }
 
     /**
-     * Creates a SequencedChampSet from float values.
+     * Creates a ChampVectorSet from float values.
      *
      * @param elements a float values
-     * @return A new SequencedChampSet of Float values
+     * @return A new ChampVectorSet of Float values
      * @throws NullPointerException if elements is null
      */
-    public static SequencedChampSet<Float> ofAll(float... elements) {
+    public static ChampVectorSet<Float> ofAll(float... elements) {
         Objects.requireNonNull(elements, "elements is null");
-        return SequencedChampSet.ofAll(Iterator.ofAll(elements));
+        return ChampVectorSet.ofAll(Iterator.ofAll(elements));
     }
 
     /**
-     * Creates a SequencedChampSet from int values.
+     * Creates a ChampVectorSet from int values.
      *
      * @param elements int values
-     * @return A new SequencedChampSet of Integer values
+     * @return A new ChampVectorSet of Integer values
      * @throws NullPointerException if elements is null
      */
-    public static SequencedChampSet<Integer> ofAll(int... elements) {
+    public static ChampVectorSet<Integer> ofAll(int... elements) {
         Objects.requireNonNull(elements, "elements is null");
-        return SequencedChampSet.ofAll(Iterator.ofAll(elements));
+        return ChampVectorSet.ofAll(Iterator.ofAll(elements));
     }
 
     /**
-     * Creates a SequencedChampSet from long values.
+     * Creates a ChampVectorSet from long values.
      *
      * @param elements long values
-     * @return A new SequencedChampSet of Long values
+     * @return A new ChampVectorSet of Long values
      * @throws NullPointerException if elements is null
      */
-    public static SequencedChampSet<Long> ofAll(long... elements) {
+    public static ChampVectorSet<Long> ofAll(long... elements) {
         Objects.requireNonNull(elements, "elements is null");
-        return SequencedChampSet.ofAll(Iterator.ofAll(elements));
+        return ChampVectorSet.ofAll(Iterator.ofAll(elements));
     }
 
     /**
-     * Creates a SequencedChampSet from short values.
+     * Creates a ChampVectorSet from short values.
      *
      * @param elements short values
-     * @return A new SequencedChampSet of Short values
+     * @return A new ChampVectorSet of Short values
      * @throws NullPointerException if elements is null
      */
-    public static SequencedChampSet<Short> ofAll(short... elements) {
+    public static ChampVectorSet<Short> ofAll(short... elements) {
         Objects.requireNonNull(elements, "elements is null");
-        return SequencedChampSet.ofAll(Iterator.ofAll(elements));
+        return ChampVectorSet.ofAll(Iterator.ofAll(elements));
     }
 
     /**
-     * Creates a SequencedChampSet of int numbers starting from {@code from}, extending to {@code toExclusive - 1}.
+     * Creates a ChampVectorSet of int numbers starting from {@code from}, extending to {@code toExclusive - 1}.
      * <p>
      * Examples:
      * <pre>
      * <code>
-     * SequencedChampSet.range(0, 0)  // = SequencedChampSet()
-     * SequencedChampSet.range(2, 0)  // = SequencedChampSet()
-     * SequencedChampSet.range(-2, 2) // = SequencedChampSet(-2, -1, 0, 1)
+     * ChampVectorSet.range(0, 0)  // = ChampVectorSet()
+     * ChampVectorSet.range(2, 0)  // = ChampVectorSet()
+     * ChampVectorSet.range(-2, 2) // = ChampVectorSet(-2, -1, 0, 1)
      * </code>
      * </pre>
      *
@@ -386,23 +386,23 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
      * @param toExclusive the last number + 1
      * @return a range of int values as specified or the empty range if {@code from >= toExclusive}
      */
-    public static SequencedChampSet<Integer> range(int from, int toExclusive) {
-        return SequencedChampSet.ofAll(Iterator.range(from, toExclusive));
+    public static ChampVectorSet<Integer> range(int from, int toExclusive) {
+        return ChampVectorSet.ofAll(Iterator.range(from, toExclusive));
     }
 
-    public static SequencedChampSet<Character> range(char from, char toExclusive) {
-        return SequencedChampSet.ofAll(Iterator.range(from, toExclusive));
+    public static ChampVectorSet<Character> range(char from, char toExclusive) {
+        return ChampVectorSet.ofAll(Iterator.range(from, toExclusive));
     }
 
     /**
-     * Creates a SequencedChampSet of long numbers starting from {@code from}, extending to {@code toExclusive - 1}.
+     * Creates a ChampVectorSet of long numbers starting from {@code from}, extending to {@code toExclusive - 1}.
      * <p>
      * Examples:
      * <pre>
      * <code>
-     * SequencedChampSet.range(0L, 0L)  // = SequencedChampSet()
-     * SequencedChampSet.range(2L, 0L)  // = SequencedChampSet()
-     * SequencedChampSet.range(-2L, 2L) // = SequencedChampSet(-2L, -1L, 0L, 1L)
+     * ChampVectorSet.range(0L, 0L)  // = ChampVectorSet()
+     * ChampVectorSet.range(2L, 0L)  // = ChampVectorSet()
+     * ChampVectorSet.range(-2L, 2L) // = ChampVectorSet(-2L, -1L, 0L, 1L)
      * </code>
      * </pre>
      *
@@ -410,21 +410,21 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
      * @param toExclusive the last number + 1
      * @return a range of long values as specified or the empty range if {@code from >= toExclusive}
      */
-    public static SequencedChampSet<Long> range(long from, long toExclusive) {
-        return SequencedChampSet.ofAll(Iterator.range(from, toExclusive));
+    public static ChampVectorSet<Long> range(long from, long toExclusive) {
+        return ChampVectorSet.ofAll(Iterator.range(from, toExclusive));
     }
 
     /**
-     * Creates a SequencedChampSet of int numbers starting from {@code from}, extending to {@code toExclusive - 1},
+     * Creates a ChampVectorSet of int numbers starting from {@code from}, extending to {@code toExclusive - 1},
      * with {@code step}.
      * <p>
      * Examples:
      * <pre>
      * <code>
-     * SequencedChampSet.rangeBy(1, 3, 1)  // = SequencedChampSet(1, 2)
-     * SequencedChampSet.rangeBy(1, 4, 2)  // = SequencedChampSet(1, 3)
-     * SequencedChampSet.rangeBy(4, 1, -2) // = SequencedChampSet(4, 2)
-     * SequencedChampSet.rangeBy(4, 1, 2)  // = SequencedChampSet()
+     * ChampVectorSet.rangeBy(1, 3, 1)  // = ChampVectorSet(1, 2)
+     * ChampVectorSet.rangeBy(1, 4, 2)  // = ChampVectorSet(1, 3)
+     * ChampVectorSet.rangeBy(4, 1, -2) // = ChampVectorSet(4, 2)
+     * ChampVectorSet.rangeBy(4, 1, 2)  // = ChampVectorSet()
      * </code>
      * </pre>
      *
@@ -436,29 +436,29 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
      * {@code from <= toInclusive} and {@code step < 0}
      * @throws IllegalArgumentException if {@code step} is zero
      */
-    public static SequencedChampSet<Integer> rangeBy(int from, int toExclusive, int step) {
-        return SequencedChampSet.ofAll(Iterator.rangeBy(from, toExclusive, step));
+    public static ChampVectorSet<Integer> rangeBy(int from, int toExclusive, int step) {
+        return ChampVectorSet.ofAll(Iterator.rangeBy(from, toExclusive, step));
     }
 
-    public static SequencedChampSet<Character> rangeBy(char from, char toExclusive, int step) {
-        return SequencedChampSet.ofAll(Iterator.rangeBy(from, toExclusive, step));
+    public static ChampVectorSet<Character> rangeBy(char from, char toExclusive, int step) {
+        return ChampVectorSet.ofAll(Iterator.rangeBy(from, toExclusive, step));
     }
 
-    public static SequencedChampSet<Double> rangeBy(double from, double toExclusive, double step) {
-        return SequencedChampSet.ofAll(Iterator.rangeBy(from, toExclusive, step));
+    public static ChampVectorSet<Double> rangeBy(double from, double toExclusive, double step) {
+        return ChampVectorSet.ofAll(Iterator.rangeBy(from, toExclusive, step));
     }
 
     /**
-     * Creates a SequencedChampSet of long numbers starting from {@code from}, extending to {@code toExclusive - 1},
+     * Creates a ChampVectorSet of long numbers starting from {@code from}, extending to {@code toExclusive - 1},
      * with {@code step}.
      * <p>
      * Examples:
      * <pre>
      * <code>
-     * SequencedChampSet.rangeBy(1L, 3L, 1L)  // = SequencedChampSet(1L, 2L)
-     * SequencedChampSet.rangeBy(1L, 4L, 2L)  // = SequencedChampSet(1L, 3L)
-     * SequencedChampSet.rangeBy(4L, 1L, -2L) // = SequencedChampSet(4L, 2L)
-     * SequencedChampSet.rangeBy(4L, 1L, 2L)  // = SequencedChampSet()
+     * ChampVectorSet.rangeBy(1L, 3L, 1L)  // = ChampVectorSet(1L, 2L)
+     * ChampVectorSet.rangeBy(1L, 4L, 2L)  // = ChampVectorSet(1L, 3L)
+     * ChampVectorSet.rangeBy(4L, 1L, -2L) // = ChampVectorSet(4L, 2L)
+     * ChampVectorSet.rangeBy(4L, 1L, 2L)  // = ChampVectorSet()
      * </code>
      * </pre>
      *
@@ -470,19 +470,19 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
      * {@code from <= toInclusive} and {@code step < 0}
      * @throws IllegalArgumentException if {@code step} is zero
      */
-    public static SequencedChampSet<Long> rangeBy(long from, long toExclusive, long step) {
-        return SequencedChampSet.ofAll(Iterator.rangeBy(from, toExclusive, step));
+    public static ChampVectorSet<Long> rangeBy(long from, long toExclusive, long step) {
+        return ChampVectorSet.ofAll(Iterator.rangeBy(from, toExclusive, step));
     }
 
     /**
-     * Creates a SequencedChampSet of int numbers starting from {@code from}, extending to {@code toInclusive}.
+     * Creates a ChampVectorSet of int numbers starting from {@code from}, extending to {@code toInclusive}.
      * <p>
      * Examples:
      * <pre>
      * <code>
-     * SequencedChampSet.rangeClosed(0, 0)  // = SequencedChampSet(0)
-     * SequencedChampSet.rangeClosed(2, 0)  // = SequencedChampSet()
-     * SequencedChampSet.rangeClosed(-2, 2) // = SequencedChampSet(-2, -1, 0, 1, 2)
+     * ChampVectorSet.rangeClosed(0, 0)  // = ChampVectorSet(0)
+     * ChampVectorSet.rangeClosed(2, 0)  // = ChampVectorSet()
+     * ChampVectorSet.rangeClosed(-2, 2) // = ChampVectorSet(-2, -1, 0, 1, 2)
      * </code>
      * </pre>
      *
@@ -490,23 +490,23 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
      * @param toInclusive the last number
      * @return a range of int values as specified or the empty range if {@code from > toInclusive}
      */
-    public static SequencedChampSet<Integer> rangeClosed(int from, int toInclusive) {
-        return SequencedChampSet.ofAll(Iterator.rangeClosed(from, toInclusive));
+    public static ChampVectorSet<Integer> rangeClosed(int from, int toInclusive) {
+        return ChampVectorSet.ofAll(Iterator.rangeClosed(from, toInclusive));
     }
 
-    public static SequencedChampSet<Character> rangeClosed(char from, char toInclusive) {
-        return SequencedChampSet.ofAll(Iterator.rangeClosed(from, toInclusive));
+    public static ChampVectorSet<Character> rangeClosed(char from, char toInclusive) {
+        return ChampVectorSet.ofAll(Iterator.rangeClosed(from, toInclusive));
     }
 
     /**
-     * Creates a SequencedChampSet of long numbers starting from {@code from}, extending to {@code toInclusive}.
+     * Creates a ChampVectorSet of long numbers starting from {@code from}, extending to {@code toInclusive}.
      * <p>
      * Examples:
      * <pre>
      * <code>
-     * SequencedChampSet.rangeClosed(0L, 0L)  // = SequencedChampSet(0L)
-     * SequencedChampSet.rangeClosed(2L, 0L)  // = SequencedChampSet()
-     * SequencedChampSet.rangeClosed(-2L, 2L) // = SequencedChampSet(-2L, -1L, 0L, 1L, 2L)
+     * ChampVectorSet.rangeClosed(0L, 0L)  // = ChampVectorSet(0L)
+     * ChampVectorSet.rangeClosed(2L, 0L)  // = ChampVectorSet()
+     * ChampVectorSet.rangeClosed(-2L, 2L) // = ChampVectorSet(-2L, -1L, 0L, 1L, 2L)
      * </code>
      * </pre>
      *
@@ -514,21 +514,21 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
      * @param toInclusive the last number
      * @return a range of long values as specified or the empty range if {@code from > toInclusive}
      */
-    public static SequencedChampSet<Long> rangeClosed(long from, long toInclusive) {
-        return SequencedChampSet.ofAll(Iterator.rangeClosed(from, toInclusive));
+    public static ChampVectorSet<Long> rangeClosed(long from, long toInclusive) {
+        return ChampVectorSet.ofAll(Iterator.rangeClosed(from, toInclusive));
     }
 
     /**
-     * Creates a SequencedChampSet of int numbers starting from {@code from}, extending to {@code toInclusive},
+     * Creates a ChampVectorSet of int numbers starting from {@code from}, extending to {@code toInclusive},
      * with {@code step}.
      * <p>
      * Examples:
      * <pre>
      * <code>
-     * SequencedChampSet.rangeClosedBy(1, 3, 1)  // = SequencedChampSet(1, 2, 3)
-     * SequencedChampSet.rangeClosedBy(1, 4, 2)  // = SequencedChampSet(1, 3)
-     * SequencedChampSet.rangeClosedBy(4, 1, -2) // = SequencedChampSet(4, 2)
-     * SequencedChampSet.rangeClosedBy(4, 1, 2)  // = SequencedChampSet()
+     * ChampVectorSet.rangeClosedBy(1, 3, 1)  // = ChampVectorSet(1, 2, 3)
+     * ChampVectorSet.rangeClosedBy(1, 4, 2)  // = ChampVectorSet(1, 3)
+     * ChampVectorSet.rangeClosedBy(4, 1, -2) // = ChampVectorSet(4, 2)
+     * ChampVectorSet.rangeClosedBy(4, 1, 2)  // = ChampVectorSet()
      * </code>
      * </pre>
      *
@@ -540,29 +540,29 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
      * {@code from < toInclusive} and {@code step < 0}
      * @throws IllegalArgumentException if {@code step} is zero
      */
-    public static SequencedChampSet<Integer> rangeClosedBy(int from, int toInclusive, int step) {
-        return SequencedChampSet.ofAll(Iterator.rangeClosedBy(from, toInclusive, step));
+    public static ChampVectorSet<Integer> rangeClosedBy(int from, int toInclusive, int step) {
+        return ChampVectorSet.ofAll(Iterator.rangeClosedBy(from, toInclusive, step));
     }
 
-    public static SequencedChampSet<Character> rangeClosedBy(char from, char toInclusive, int step) {
-        return SequencedChampSet.ofAll(Iterator.rangeClosedBy(from, toInclusive, step));
+    public static ChampVectorSet<Character> rangeClosedBy(char from, char toInclusive, int step) {
+        return ChampVectorSet.ofAll(Iterator.rangeClosedBy(from, toInclusive, step));
     }
 
-    public static SequencedChampSet<Double> rangeClosedBy(double from, double toInclusive, double step) {
-        return SequencedChampSet.ofAll(Iterator.rangeClosedBy(from, toInclusive, step));
+    public static ChampVectorSet<Double> rangeClosedBy(double from, double toInclusive, double step) {
+        return ChampVectorSet.ofAll(Iterator.rangeClosedBy(from, toInclusive, step));
     }
 
     /**
-     * Creates a SequencedChampSet of long numbers starting from {@code from}, extending to {@code toInclusive},
+     * Creates a ChampVectorSet of long numbers starting from {@code from}, extending to {@code toInclusive},
      * with {@code step}.
      * <p>
      * Examples:
      * <pre>
      * <code>
-     * SequencedChampSet.rangeClosedBy(1L, 3L, 1L)  // = SequencedChampSet(1L, 2L, 3L)
-     * SequencedChampSet.rangeClosedBy(1L, 4L, 2L)  // = SequencedChampSet(1L, 3L)
-     * SequencedChampSet.rangeClosedBy(4L, 1L, -2L) // = SequencedChampSet(4L, 2L)
-     * SequencedChampSet.rangeClosedBy(4L, 1L, 2L)  // = SequencedChampSet()
+     * ChampVectorSet.rangeClosedBy(1L, 3L, 1L)  // = ChampVectorSet(1L, 2L, 3L)
+     * ChampVectorSet.rangeClosedBy(1L, 4L, 2L)  // = ChampVectorSet(1L, 3L)
+     * ChampVectorSet.rangeClosedBy(4L, 1L, -2L) // = ChampVectorSet(4L, 2L)
+     * ChampVectorSet.rangeClosedBy(4L, 1L, 2L)  // = ChampVectorSet()
      * </code>
      * </pre>
      *
@@ -574,23 +574,23 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
      * {@code from < toInclusive} and {@code step < 0}
      * @throws IllegalArgumentException if {@code step} is zero
      */
-    public static SequencedChampSet<Long> rangeClosedBy(long from, long toInclusive, long step) {
-        return SequencedChampSet.ofAll(Iterator.rangeClosedBy(from, toInclusive, step));
+    public static ChampVectorSet<Long> rangeClosedBy(long from, long toInclusive, long step) {
+        return ChampVectorSet.ofAll(Iterator.rangeClosedBy(from, toInclusive, step));
     }
 
     /**
-     * Returns a SequencedChampSet containing {@code n} values of a given Function {@code f}
+     * Returns a ChampVectorSet containing {@code n} values of a given Function {@code f}
      * over a range of integer values from 0 to {@code n - 1}.
      *
-     * @param <T> Component type of the SequencedChampSet
-     * @param n   The number of elements in the SequencedChampSet
+     * @param <T> Component type of the ChampVectorSet
+     * @param n   The number of elements in the ChampVectorSet
      * @param f   The Function computing element values
-     * @return A SequencedChampSet consisting of elements {@code f(0),f(1), ..., f(n - 1)}
+     * @return A ChampVectorSet consisting of elements {@code f(0),f(1), ..., f(n - 1)}
      * @throws NullPointerException if {@code f} is null
      */
-    public static <T> SequencedChampSet<T> tabulate(int n, Function<? super Integer, ? extends T> f) {
+    public static <T> ChampVectorSet<T> tabulate(int n, Function<? super Integer, ? extends T> f) {
         Objects.requireNonNull(f, "f is null");
-        return Collections.tabulate(n, f, SequencedChampSet.empty(), SequencedChampSet::of);
+        return Collections.tabulate(n, f, ChampVectorSet.empty(), ChampVectorSet::of);
     }
 
     /**
@@ -602,7 +602,7 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
      * @return A new set containing all elements of this set and also {@code element}.
      */
     @Override
-    public SequencedChampSet<T> add(T element) {
+    public ChampVectorSet<T> add(T element) {
         return addLast(element, false);
     }
 
@@ -616,16 +616,16 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
      */
     @SuppressWarnings("unchecked")
     @Override
-    public SequencedChampSet<T> addAll(Iterable<? extends T> elements) {
-        if (isEmpty() && elements instanceof SequencedChampSet) {
-            return (SequencedChampSet<T>) elements;
+    public ChampVectorSet<T> addAll(Iterable<? extends T> elements) {
+        if (isEmpty() && elements instanceof ChampVectorSet) {
+            return (ChampVectorSet<T>) elements;
         }
         TransientLinkedHashSet<T> t = toTransient();
         t.addAll(elements);
         return t.root == this.root ? this : t.toImmutable();
     }
 
-    private SequencedChampSet<T> addLast(T e, boolean moveToLast) {
+    private ChampVectorSet<T> addLast(T e, boolean moveToLast) {
         ChampTrie.ChangeEvent<ChampSequenced.ChampSequencedElement<T>> details = new ChampTrie.ChangeEvent<ChampSequenced.ChampSequencedElement<T>>();
         ChampSequenced.ChampSequencedElement<T> newElem = new ChampSequenced.ChampSequencedElement<T>(e, vector.size() - offset);
         ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedElement<T>> newRoot = root.put(null, newElem,
@@ -653,7 +653,7 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
     }
 
     @Override
-    public <R> SequencedChampSet<R> collect(PartialFunction<? super T, ? extends R> partialFunction) {
+    public <R> ChampVectorSet<R> collect(PartialFunction<? super T, ? extends R> partialFunction) {
         return ofAll(iterator().<R>collect(partialFunction));
     }
 
@@ -663,55 +663,55 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
     }
 
     @Override
-    public SequencedChampSet<T> diff(Set<? extends T> elements) {
+    public ChampVectorSet<T> diff(Set<? extends T> elements) {
         return removeAll(elements);
     }
 
     @Override
-    public SequencedChampSet<T> distinct() {
+    public ChampVectorSet<T> distinct() {
         return this;
     }
 
     @Override
-    public SequencedChampSet<T> distinctBy(Comparator<? super T> comparator) {
+    public ChampVectorSet<T> distinctBy(Comparator<? super T> comparator) {
         Objects.requireNonNull(comparator, "comparator is null");
-        return SequencedChampSet.ofAll(iterator().distinctBy(comparator));
+        return ChampVectorSet.ofAll(iterator().distinctBy(comparator));
     }
 
     @Override
-    public <U> SequencedChampSet<T> distinctBy(Function<? super T, ? extends U> keyExtractor) {
+    public <U> ChampVectorSet<T> distinctBy(Function<? super T, ? extends U> keyExtractor) {
         Objects.requireNonNull(keyExtractor, "keyExtractor is null");
-        return SequencedChampSet.ofAll(iterator().distinctBy(keyExtractor));
+        return ChampVectorSet.ofAll(iterator().distinctBy(keyExtractor));
     }
 
     @Override
-    public SequencedChampSet<T> drop(int n) {
+    public ChampVectorSet<T> drop(int n) {
         if (n <= 0) {
             return this;
         } else {
-            return SequencedChampSet.ofAll(iterator(n));
+            return ChampVectorSet.ofAll(iterator(n));
         }
     }
 
     @Override
-    public SequencedChampSet<T> dropRight(int n) {
+    public ChampVectorSet<T> dropRight(int n) {
         if (n <= 0) {
             return this;
         } else {
-            return SequencedChampSet.ofAll(iterator().dropRight(n));
+            return ChampVectorSet.ofAll(iterator().dropRight(n));
         }
     }
 
     @Override
-    public SequencedChampSet<T> dropUntil(Predicate<? super T> predicate) {
+    public ChampVectorSet<T> dropUntil(Predicate<? super T> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         return dropWhile(predicate.negate());
     }
 
     @Override
-    public SequencedChampSet<T> dropWhile(Predicate<? super T> predicate) {
+    public ChampVectorSet<T> dropWhile(Predicate<? super T> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
-        final SequencedChampSet<T> dropped = SequencedChampSet.ofAll(iterator().dropWhile(predicate));
+        final ChampVectorSet<T> dropped = ChampVectorSet.ofAll(iterator().dropWhile(predicate));
         return dropped.length() == length() ? this : dropped;
     }
 
@@ -721,16 +721,16 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
     }
 
     @Override
-    public SequencedChampSet<T> filter(Predicate<? super T> predicate) {
+    public ChampVectorSet<T> filter(Predicate<? super T> predicate) {
         TransientLinkedHashSet<T> t = toTransient();
         t.filterAll(predicate);
         return t.root == this.root ? this : t.toImmutable();
     }
 
     @Override
-    public <U> SequencedChampSet<U> flatMap(Function<? super T, ? extends Iterable<? extends U>> mapper) {
+    public <U> ChampVectorSet<U> flatMap(Function<? super T, ? extends Iterable<? extends U>> mapper) {
         Objects.requireNonNull(mapper, "mapper is null");
-        SequencedChampSet<U> flatMapped = empty();
+        ChampVectorSet<U> flatMapped = empty();
         for (T t : this) {
             for (U u : mapper.apply(t)) {
                 flatMapped = flatMapped.add(u);
@@ -746,12 +746,12 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
     }
 
     @Override
-    public <C> Map<C, SequencedChampSet<T>> groupBy(Function<? super T, ? extends C> classifier) {
-        return Collections.groupBy(this, classifier, SequencedChampSet::ofAll, SequencedChampMap.empty());
+    public <C> Map<C, ChampVectorSet<T>> groupBy(Function<? super T, ? extends C> classifier) {
+        return Collections.groupBy(this, classifier, ChampVectorSet::ofAll, ChampVectorMap.empty());
     }
 
     @Override
-    public Iterator<SequencedChampSet<T>> grouped(int size) {
+    public Iterator<ChampVectorSet<T>> grouped(int size) {
         return sliding(size, size);
     }
 
@@ -777,7 +777,7 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
     }
 
     @Override
-    public SequencedChampSet<T> init() {
+    public ChampVectorSet<T> init() {
         // XXX Traversable.init() specifies that we must throw
         //     UnsupportedOperationException instead of NoSuchElementException
         //     when this set is empty.
@@ -788,17 +788,17 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
     }
 
     @Override
-    public Option<SequencedChampSet<T>> initOption() {
+    public Option<ChampVectorSet<T>> initOption() {
         return isEmpty() ? Option.none() : Option.some(init());
     }
 
     @Override
-    public SequencedChampSet<T> intersect(Set<? extends T> elements) {
+    public ChampVectorSet<T> intersect(Set<? extends T> elements) {
         return retainAll(elements);
     }
 
     /**
-     * An {@code SequencedChampSet}'s value is computed synchronously.
+     * An {@code ChampVectorSet}'s value is computed synchronously.
      *
      * @return false
      */
@@ -813,7 +813,7 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
     }
 
     /**
-     * An {@code SequencedChampSet}'s value is computed eagerly.
+     * An {@code ChampVectorSet}'s value is computed eagerly.
      *
      * @return false
      */
@@ -853,9 +853,9 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
     }
 
     @Override
-    public <U> SequencedChampSet<U> map(Function<? super T, ? extends U> mapper) {
+    public <U> ChampVectorSet<U> map(Function<? super T, ? extends U> mapper) {
         Objects.requireNonNull(mapper, "mapper is null");
-        SequencedChampSet<U> mapped = empty();
+        ChampVectorSet<U> mapped = empty();
         for (T t : this) {
             mapped = mapped.add(mapper.apply(t));
         }
@@ -868,22 +868,22 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
     }
 
     @Override
-    public SequencedChampSet<T> orElse(Iterable<? extends T> other) {
+    public ChampVectorSet<T> orElse(Iterable<? extends T> other) {
         return isEmpty() ? ofAll(other) : this;
     }
 
     @Override
-    public SequencedChampSet<T> orElse(Supplier<? extends Iterable<? extends T>> supplier) {
+    public ChampVectorSet<T> orElse(Supplier<? extends Iterable<? extends T>> supplier) {
         return isEmpty() ? ofAll(supplier.get()) : this;
     }
 
     @Override
-    public Tuple2<SequencedChampSet<T>, SequencedChampSet<T>> partition(Predicate<? super T> predicate) {
-        return Collections.partition(this, SequencedChampSet::ofAll, predicate);
+    public Tuple2<ChampVectorSet<T>, ChampVectorSet<T>> partition(Predicate<? super T> predicate) {
+        return Collections.partition(this, ChampVectorSet::ofAll, predicate);
     }
 
     @Override
-    public SequencedChampSet<T> peek(Consumer<? super T> action) {
+    public ChampVectorSet<T> peek(Consumer<? super T> action) {
         Objects.requireNonNull(action, "action is null");
         if (!isEmpty()) {
             action.accept(iterator().head());
@@ -904,13 +904,13 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
     }
 
     @Override
-    public SequencedChampSet<T> reject(Predicate<? super T> predicate) {
+    public ChampVectorSet<T> reject(Predicate<? super T> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         return this.filter(predicate.negate());
     }
 
     @Override
-    public SequencedChampSet<T> remove(T element) {
+    public ChampVectorSet<T> remove(T element) {
         int keyHash = Objects.hashCode(element);
         ChampTrie.ChangeEvent<ChampSequenced.ChampSequencedElement<T>> details = new ChampTrie.ChangeEvent<ChampSequenced.ChampSequencedElement<T>>();
         ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedElement<T>> newRoot = root.remove(null,
@@ -926,7 +926,7 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
     }
 
     @Override
-    public SequencedChampSet<T> removeAll(Iterable<? extends T> elements) {
+    public ChampVectorSet<T> removeAll(Iterable<? extends T> elements) {
         TransientLinkedHashSet<T> t = toTransient();
         t.removeAll(elements);
         return t.root == this.root ? this : t.toImmutable();
@@ -939,9 +939,9 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
      * @param vector the root of the vector
      * @param size   the size of the trie
      * @param offset the offset that must be added to a sequence number to get the index into the vector
-     * @return a new {@link SequencedChampSet} instance
+     * @return a new {@link ChampVectorSet} instance
      */
-    private SequencedChampSet<T> renumber(
+    private ChampVectorSet<T> renumber(
             ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedElement<T>> root,
             BitMappedTrie<Object> vector,
             int size, int offset) {
@@ -951,15 +951,15 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
             Tuple2<ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedElement<T>>, BitMappedTrie<Object>> result = ChampSequenced.ChampSequencedData.<ChampSequenced.ChampSequencedElement<T>>vecRenumber(
                     size, root, vector, owner, Objects::hashCode, Objects::equals,
                     (e, seq) -> new ChampSequenced.ChampSequencedElement<>(e.getElement(), seq));
-            return new SequencedChampSet<>(
+            return new ChampVectorSet<>(
                     result._1(), result._2(),
                     size, 0);
         }
-        return new SequencedChampSet<>(root, vector, size, offset);
+        return new ChampVectorSet<>(root, vector, size, offset);
     }
 
     @Override
-    public SequencedChampSet<T> replace(T currentElement, T newElement) {
+    public ChampVectorSet<T> replace(T currentElement, T newElement) {
         // currentElement and newElem are the same => do nothing
         if (Objects.equals(currentElement, newElement)) {
             return this;
@@ -1013,17 +1013,17 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
             return renumber(newRoot, newVector, size - 1, newOffset);
         } else {
             // we did not change the size of the map => no renumbering is needed
-            return new SequencedChampSet<>(newRoot, newVector, size, newOffset);
+            return new ChampVectorSet<>(newRoot, newVector, size, newOffset);
         }
     }
 
     @Override
-    public SequencedChampSet<T> replaceAll(T currentElement, T newElement) {
+    public ChampVectorSet<T> replaceAll(T currentElement, T newElement) {
         return replace(currentElement, newElement);
     }
 
     @Override
-    public SequencedChampSet<T> retainAll(Iterable<? extends T> elements) {
+    public ChampVectorSet<T> retainAll(Iterable<? extends T> elements) {
         TransientLinkedHashSet<T> t = toTransient();
         t.retainAll(elements);
         return t.root == this.root ? this : t.toImmutable();
@@ -1041,40 +1041,40 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
     }
 
     @Override
-    public SequencedChampSet<T> scan(T zero, BiFunction<? super T, ? super T, ? extends T> operation) {
+    public ChampVectorSet<T> scan(T zero, BiFunction<? super T, ? super T, ? extends T> operation) {
         return scanLeft(zero, operation);
     }
 
     @Override
-    public <U> SequencedChampSet<U> scanLeft(U zero, BiFunction<? super U, ? super T, ? extends U> operation) {
-        return Collections.scanLeft(this, zero, operation, SequencedChampSet::ofAll);
+    public <U> ChampVectorSet<U> scanLeft(U zero, BiFunction<? super U, ? super T, ? extends U> operation) {
+        return Collections.scanLeft(this, zero, operation, ChampVectorSet::ofAll);
     }
 
     @Override
-    public <U> SequencedChampSet<U> scanRight(U zero, BiFunction<? super T, ? super U, ? extends U> operation) {
-        return Collections.scanRight(this, zero, operation, SequencedChampSet::ofAll);
+    public <U> ChampVectorSet<U> scanRight(U zero, BiFunction<? super T, ? super U, ? extends U> operation) {
+        return Collections.scanRight(this, zero, operation, ChampVectorSet::ofAll);
     }
 
     @Override
-    public Iterator<SequencedChampSet<T>> slideBy(Function<? super T, ?> classifier) {
-        return iterator().slideBy(classifier).map(SequencedChampSet::ofAll);
+    public Iterator<ChampVectorSet<T>> slideBy(Function<? super T, ?> classifier) {
+        return iterator().slideBy(classifier).map(ChampVectorSet::ofAll);
     }
 
     @Override
-    public Iterator<SequencedChampSet<T>> sliding(int size) {
+    public Iterator<ChampVectorSet<T>> sliding(int size) {
         return sliding(size, 1);
     }
 
     @Override
-    public Iterator<SequencedChampSet<T>> sliding(int size, int step) {
-        return iterator().sliding(size, step).map(SequencedChampSet::ofAll);
+    public Iterator<ChampVectorSet<T>> sliding(int size, int step) {
+        return iterator().sliding(size, step).map(ChampVectorSet::ofAll);
     }
 
     @Override
-    public Tuple2<SequencedChampSet<T>, SequencedChampSet<T>> span(Predicate<? super T> predicate) {
+    public Tuple2<ChampVectorSet<T>, ChampVectorSet<T>> span(Predicate<? super T> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         final Tuple2<Iterator<T>, Iterator<T>> t = iterator().span(predicate);
-        return Tuple.of(SequencedChampSet.ofAll(t._1), SequencedChampSet.ofAll(t._2));
+        return Tuple.of(ChampVectorSet.ofAll(t._1), ChampVectorSet.ofAll(t._2));
     }
 
     @SuppressWarnings("unchecked")
@@ -1092,63 +1092,63 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
 
     @Override
     public String stringPrefix() {
-        return "SequencedChampSet";
+        return "ChampVectorSet";
     }
 
     @Override
-    public SequencedChampSet<T> tail() {
+    public ChampVectorSet<T> tail() {
         // XXX AbstractTraversableTest.shouldThrowWhenTailOnNil requires that we throw UnsupportedOperationException instead of NoSuchElementException.
         if (isEmpty()) throw new UnsupportedOperationException();
         return remove(head());
     }
 
     @Override
-    public Option<SequencedChampSet<T>> tailOption() {
+    public Option<ChampVectorSet<T>> tailOption() {
         return isEmpty() ? Option.none() : Option.some(tail());
     }
 
     @Override
-    public SequencedChampSet<T> take(int n) {
+    public ChampVectorSet<T> take(int n) {
         if (size() <= n) {
             return this;
         }
-        return SequencedChampSet.ofAll(() -> iterator().take(n));
+        return ChampVectorSet.ofAll(() -> iterator().take(n));
     }
 
     @Override
-    public SequencedChampSet<T> takeRight(int n) {
+    public ChampVectorSet<T> takeRight(int n) {
         if (size() <= n) {
             return this;
         }
-        return SequencedChampSet.ofAll(() -> iterator().takeRight(n));
+        return ChampVectorSet.ofAll(() -> iterator().takeRight(n));
     }
 
     @Override
-    public SequencedChampSet<T> takeUntil(Predicate<? super T> predicate) {
+    public ChampVectorSet<T> takeUntil(Predicate<? super T> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         return takeWhile(predicate.negate());
     }
 
     @Override
-    public SequencedChampSet<T> takeWhile(Predicate<? super T> predicate) {
+    public ChampVectorSet<T> takeWhile(Predicate<? super T> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
-        final SequencedChampSet<T> taken = SequencedChampSet.ofAll(iterator().takeWhile(predicate));
+        final ChampVectorSet<T> taken = ChampVectorSet.ofAll(iterator().takeWhile(predicate));
         return taken.length() == length() ? this : taken;
     }
 
     @Override
     public java.util.LinkedHashSet<T> toJavaSet() {
-        // XXX If the return value was not required to be a java.util.SequencedChampSet
-        //     we could provide a mutable SequencedChampSet in O(1)
+        // XXX If the return value was not required to be a java.util.ChampVectorSet
+        //     we could provide a mutable ChampVectorSet in O(1)
         return toJavaSet(java.util.LinkedHashSet::new);
     }
 
     @Override
     public <K, V> Map<K, V> toLinkedMap(Function<? super T, ? extends Tuple2<? extends K, ? extends V>> f) {
         Objects.requireNonNull(f, "f is null");
-        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = SequencedChampMap::of;
-        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = SequencedChampMap::ofEntries;
-        return ValueModule.toMap(this, SequencedChampMap.empty(), ofElement, ofAll, f);
+        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = ChampVectorMap::of;
+        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = ChampVectorMap::ofEntries;
+        return ValueModule.toMap(this, ChampVectorMap.empty(), ofElement, ofAll, f);
     }
 
     @Override
@@ -1158,7 +1158,7 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
 
     @Override
     public Set<T> toLinkedSet() {
-        return (io.vavr.collection.Set) ValueModule.toTraversable(this, SequencedChampSet.empty(), SequencedChampSet::of, SequencedChampSet::ofAll);
+        return (io.vavr.collection.Set) ValueModule.toTraversable(this, ChampVectorSet.empty(), ChampVectorSet::of, ChampVectorSet::ofAll);
     }
 
     @Override
@@ -1192,14 +1192,14 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
     }
 
     /**
-     * Transforms this {@code SequencedChampSet}.
+     * Transforms this {@code ChampVectorSet}.
      *
      * @param f   A transformation
      * @param <U> Type of transformation result
      * @return An instance of type {@code U}
      * @throws NullPointerException if {@code f} is null
      */
-    public <U> U transform(Function<? super SequencedChampSet<T>, ? extends U> f) {
+    public <U> U transform(Function<? super ChampVectorSet<T>, ? extends U> f) {
         Objects.requireNonNull(f, "f is null");
         return f.apply(this);
     }
@@ -1211,7 +1211,7 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
      * @return A new set that contains all distinct elements of this and {@code elements} set.
      */
     @Override
-    public SequencedChampSet<T> union(Set<? extends T> elements) {
+    public ChampVectorSet<T> union(Set<? extends T> elements) {
         return addAll(elements);
     }
 
@@ -1226,13 +1226,13 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
 
     // -- Serialization
 
-    public <T1, T2> Tuple2<SequencedChampSet<T1>, SequencedChampSet<T2>> unzip(Function<? super T, Tuple2<? extends T1, ? extends T2>> unzipper) {
+    public <T1, T2> Tuple2<ChampVectorSet<T1>, ChampVectorSet<T2>> unzip(Function<? super T, Tuple2<? extends T1, ? extends T2>> unzipper) {
         Objects.requireNonNull(unzipper, "unzipper is null");
         Tuple2<Iterator<T1>, Iterator<T2>> t = this.iterator().unzip(unzipper);
         return Tuple.of(ofAll((Iterable) t._1), ofAll((Iterable) t._2));
     }
 
-    public <T1, T2, T3> Tuple3<SequencedChampSet<T1>, SequencedChampSet<T2>, SequencedChampSet<T3>> unzip3(Function<? super T, Tuple3<? extends T1, ? extends T2, ? extends T3>> unzipper) {
+    public <T1, T2, T3> Tuple3<ChampVectorSet<T1>, ChampVectorSet<T2>, ChampVectorSet<T3>> unzip3(Function<? super T, Tuple3<? extends T1, ? extends T2, ? extends T3>> unzipper) {
         Objects.requireNonNull(unzipper, "unzipper is null");
         Tuple3<Iterator<T1>, Iterator<T2>, Iterator<T3>> t = this.iterator().unzip3(unzipper);
         return Tuple.of(ofAll((Iterable) t._1), ofAll((Iterable) t._2), ofAll((Iterable) t._3));
@@ -1251,32 +1251,32 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
     }
 
     @Override
-    public <U> SequencedChampSet<Tuple2<T, U>> zip(Iterable<? extends U> that) {
+    public <U> ChampVectorSet<Tuple2<T, U>> zip(Iterable<? extends U> that) {
         return zipWith(that, Tuple::of);
     }
 
     @Override
-    public <U> SequencedChampSet<Tuple2<T, U>> zipAll(Iterable<? extends U> that, T thisElem, U thatElem) {
+    public <U> ChampVectorSet<Tuple2<T, U>> zipAll(Iterable<? extends U> that, T thisElem, U thatElem) {
         Objects.requireNonNull(that, "that is null");
-        return SequencedChampSet.ofAll(iterator().zipAll(that, thisElem, thatElem));
+        return ChampVectorSet.ofAll(iterator().zipAll(that, thisElem, thatElem));
     }
 
     @Override
-    public <U, R> SequencedChampSet<R> zipWith(Iterable<? extends U> that, BiFunction<? super T, ? super U, ? extends R> mapper) {
+    public <U, R> ChampVectorSet<R> zipWith(Iterable<? extends U> that, BiFunction<? super T, ? super U, ? extends R> mapper) {
         Objects.requireNonNull(that, "that is null");
         Objects.requireNonNull(mapper, "mapper is null");
-        return SequencedChampSet.ofAll(iterator().zipWith(that, mapper));
+        return ChampVectorSet.ofAll(iterator().zipWith(that, mapper));
     }
 
     @Override
-    public SequencedChampSet<Tuple2<T, Integer>> zipWithIndex() {
+    public ChampVectorSet<Tuple2<T, Integer>> zipWithIndex() {
         return zipWithIndex(Tuple::of);
     }
 
     @Override
-    public <U> SequencedChampSet<U> zipWithIndex(BiFunction<? super T, ? super Integer, ? extends U> mapper) {
+    public <U> ChampVectorSet<U> zipWithIndex(BiFunction<? super T, ? super Integer, ? extends U> mapper) {
         Objects.requireNonNull(mapper, "mapper is null");
-        return SequencedChampSet.ofAll(iterator().zipWithIndex(mapper));
+        return ChampVectorSet.ofAll(iterator().zipWithIndex(mapper));
     }
 
     /**
@@ -1292,17 +1292,17 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
         private static final long serialVersionUID = 1L;
 
         // the instance to be serialized/deserialized
-        private transient SequencedChampSet<T> set;
+        private transient ChampVectorSet<T> set;
 
         /**
-         * Constructor for the case of serialization, called by {@link SequencedChampSet#writeReplace()}.
+         * Constructor for the case of serialization, called by {@link ChampVectorSet#writeReplace()}.
          * <p/>
          * The constructor of a SerializationProxy takes an argument that concisely represents the logical state of
          * an instance of the enclosing class.
          *
          * @param set a Cons
          */
-        SerializationProxy(SequencedChampSet<T> set) {
+        SerializationProxy(ChampVectorSet<T> set) {
             this.set = set;
         }
 
@@ -1320,7 +1320,7 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
             if (size < 0) {
                 throw new InvalidObjectException("No elements");
             }
-            SequencedChampSet<T> temp = SequencedChampSet.empty();
+            ChampVectorSet<T> temp = ChampVectorSet.empty();
             for (int i = 0; i < size; i++) {
                 @SuppressWarnings("unchecked") final T element = (T) s.readObject();
                 temp = temp.add(element);
@@ -1338,7 +1338,7 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
          * @return A deserialized instance of the enclosing class.
          */
         private Object readResolve() {
-            return SequencedChampSet.empty().addAll(set);
+            return ChampVectorSet.empty().addAll(set);
         }
 
         /**
@@ -1365,7 +1365,7 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
         int offset;
         BitMappedTrie<Object> vector;
 
-        TransientLinkedHashSet(SequencedChampSet<E> s) {
+        TransientLinkedHashSet(ChampVectorSet<E> s) {
             root = s.root;
             size = s.size;
             this.vector = s.vector;
@@ -1385,8 +1385,8 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
             if (c == root) {
                 return false;
             }
-            if (isEmpty() && (c instanceof SequencedChampSet<?>)) {
-                SequencedChampSet<?> cc = (SequencedChampSet<?>) c;
+            if (isEmpty() && (c instanceof ChampVectorSet<?>)) {
+                ChampVectorSet<?> cc = (ChampVectorSet<?>) c;
                 root = (ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedElement<E>>) (ChampTrie.BitmapIndexedNode<?>) cc.root;
                 size = cc.size;
                 return true;
@@ -1492,11 +1492,11 @@ public class SequencedChampSet<T> implements Set<T>, Serializable {
                     size(), Spliterator.SIZED | Spliterator.DISTINCT | Spliterator.ORDERED);
         }
 
-        public SequencedChampSet<E> toImmutable() {
+        public ChampVectorSet<E> toImmutable() {
             owner = null;
             return isEmpty()
                     ? empty()
-                    : new SequencedChampSet<>(root, vector, size, offset);
+                    : new ChampVectorSet<>(root, vector, size, offset);
         }
 
         static class VectorSideEffectPredicate<E> implements Predicate<ChampSequenced.ChampSequencedElement<E>> {

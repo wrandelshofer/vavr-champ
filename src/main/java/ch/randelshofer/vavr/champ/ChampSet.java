@@ -88,11 +88,6 @@ import java.util.stream.Collector;
  * copy of the node and of all parent nodes up to the root (copy-path-on-write).
  * Since the CHAMP trie has a fixed maximal height, the cost is O(1).
  * <p>
- * The immutable version of this set extends from the non-public class
- * {@code ChampBitmapIndexNode}. This design safes 16 bytes for every instance,
- * and reduces the number of redirections for finding an element in the
- * collection by 1.
- * <p>
  * References:
  * <p>
  * Portions of the code in this class have been derived from 'The Capsule Hash Trie Collections Library', and from
@@ -690,7 +685,7 @@ public final class ChampSet<T> implements Set<T>, Serializable {
 
     @Override
     public <C> Map<C, ChampSet<T>> groupBy(Function<? super T, ? extends C> classifier) {
-        return Collections.groupBy(this, classifier, ChampSet::ofAll, SequencedChampMap.empty());
+        return Collections.groupBy(this, classifier, ChampSet::ofAll, ChampVectorMap.empty());
     }
 
     @Override
@@ -987,14 +982,14 @@ public final class ChampSet<T> implements Set<T>, Serializable {
     @Override
     public <K, V> Map<K, V> toLinkedMap(Function<? super T, ? extends Tuple2<? extends K, ? extends V>> f) {
         Objects.requireNonNull(f, "f is null");
-        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = SequencedChampMap::of;
-        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = SequencedChampMap::ofEntries;
-        return ValueModule.toMap(this, SequencedChampMap.empty(), ofElement, ofAll, f);
+        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = ChampVectorMap::of;
+        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = ChampVectorMap::ofEntries;
+        return ValueModule.toMap(this, ChampVectorMap.empty(), ofElement, ofAll, f);
     }
 
     @Override
     public Set<T> toLinkedSet() {
-        return (io.vavr.collection.Set) ValueModule.toTraversable(this, SequencedChampSet.empty(), SequencedChampSet::of, SequencedChampSet::ofAll);
+        return (io.vavr.collection.Set) ValueModule.toTraversable(this, ChampVectorSet.empty(), ChampVectorSet::of, ChampVectorSet::ofAll);
     }
 
     @Override

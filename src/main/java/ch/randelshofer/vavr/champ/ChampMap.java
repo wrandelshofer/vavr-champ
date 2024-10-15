@@ -95,11 +95,6 @@ import static ch.randelshofer.vavr.champ.ChampTrie.BitmapIndexedNode.emptyNode;
  * All operations on this map can be performed concurrently, without a need for
  * synchronisation.
  * <p>
- * The immutable version of this map extends from the non-public class
- * {@code ChampBitmapIndexNode}. This design safes 16 bytes for every instance,
- * and reduces the number of redirections for finding an element in the
- * collection by 1.
- * <p>
  * References:
  * <p>
  * Portions of the code in this class have been derived from 'The Capsule Hash Trie Collections Library', and from
@@ -729,7 +724,7 @@ public class ChampMap<K, V> implements io.vavr.collection.Map<K, V>, Serializabl
 
     @Override
     public <C> io.vavr.collection.Map<C, ChampMap<K, V>> groupBy(Function<? super Tuple2<K, V>, ? extends C> classifier) {
-        return Maps.groupBy(this, this::createFromEntries, classifier, SequencedChampMap.empty());
+        return Maps.groupBy(this, this::createFromEntries, classifier, ChampVectorMap.empty());
     }
 
     @Override
@@ -1099,14 +1094,14 @@ public class ChampMap<K, V> implements io.vavr.collection.Map<K, V>, Serializabl
     @SuppressWarnings("rawtypes")
     public io.vavr.collection.Map toLinkedMap(Function f) {
         Objects.requireNonNull(f, "f is null");
-        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = SequencedChampMap::of;
-        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = SequencedChampMap::ofEntries;
-        return ValueModule.toMap(this, SequencedChampMap.empty(), ofElement, ofAll, f);
+        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = ChampVectorMap::of;
+        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = ChampVectorMap::ofEntries;
+        return ValueModule.toMap(this, ChampVectorMap.empty(), ofElement, ofAll, f);
     }
 
     @Override
     public Set<Tuple2<K, V>> toLinkedSet() {
-        return (io.vavr.collection.Set) ValueModule.toTraversable(this, SequencedChampSet.empty(), SequencedChampSet::of, SequencedChampSet::ofAll);
+        return (io.vavr.collection.Set) ValueModule.toTraversable(this, ChampVectorSet.empty(), ChampVectorSet::of, ChampVectorSet::ofAll);
     }
 
     @Override

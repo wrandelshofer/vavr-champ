@@ -145,9 +145,9 @@ import static ch.randelshofer.vavr.champ.ChampTrie.BitmapIndexedNode.emptyNode;
  * @param <V> the value type
  */
 @SuppressWarnings("exports")
-public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Serializable {
+public class ChampVectorMap<K, V> implements io.vavr.collection.Map<K, V>, Serializable {
     private static final long serialVersionUID = 1L;
-    private static final SequencedChampMap<?, ?> EMPTY = new SequencedChampMap<>(
+    private static final ChampVectorMap<?, ?> EMPTY = new ChampVectorMap<>(
             emptyNode(), BitMappedTrie.empty(), 0, 0);
     /**
      * Offset of sequence numbers to vector indices.
@@ -165,9 +165,9 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     final BitMappedTrie<Object> vector;
     private final ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, V>> root;
 
-    SequencedChampMap(ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, V>> root,
-                      BitMappedTrie<Object> vector,
-                      int size, int offset) {
+    ChampVectorMap(ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, V>> root,
+                   BitMappedTrie<Object> vector,
+                   int size, int offset) {
         this.root = root;
         this.size = size;
         this.offset = offset;
@@ -176,88 +176,88 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
 
     /**
      * Returns a {@link Collector} which may be used in conjunction with
-     * {@link java.util.stream.Stream#collect(Collector)} to obtain a {@link SequencedChampMap}.
+     * {@link java.util.stream.Stream#collect(Collector)} to obtain a {@link ChampVectorMap}.
      *
      * @param <K> The key type
      * @param <V> The value type
-     * @return A {@link SequencedChampMap} Collector.
+     * @return A {@link ChampVectorMap} Collector.
      */
-    public static <K, V> Collector<Tuple2<K, V>, ArrayList<Tuple2<K, V>>, SequencedChampMap<K, V>> collector() {
-        return Collections.toListAndThen(SequencedChampMap::ofEntries);
+    public static <K, V> Collector<Tuple2<K, V>, ArrayList<Tuple2<K, V>>, ChampVectorMap<K, V>> collector() {
+        return Collections.toListAndThen(ChampVectorMap::ofEntries);
     }
 
     /**
      * Returns a {@link Collector} which may be used in conjunction with
-     * {@link java.util.stream.Stream#collect(Collector)} to obtain a {@link SequencedChampMap}.
+     * {@link java.util.stream.Stream#collect(Collector)} to obtain a {@link ChampVectorMap}.
      *
      * @param keyMapper The key mapper
      * @param <K>       The key type
      * @param <V>       The value type
      * @param <T>       Initial {@link java.util.stream.Stream} elements type
-     * @return A {@link SequencedChampMap} Collector.
+     * @return A {@link ChampVectorMap} Collector.
      */
-    public static <K, V, T extends V> Collector<T, ArrayList<T>, SequencedChampMap<K, V>> collector(Function<? super T, ? extends K> keyMapper) {
+    public static <K, V, T extends V> Collector<T, ArrayList<T>, ChampVectorMap<K, V>> collector(Function<? super T, ? extends K> keyMapper) {
         Objects.requireNonNull(keyMapper, "keyMapper is null");
-        return SequencedChampMap.collector(keyMapper, v -> v);
+        return ChampVectorMap.collector(keyMapper, v -> v);
     }
 
     /**
      * Returns a {@link Collector} which may be used in conjunction with
-     * {@link java.util.stream.Stream#collect(Collector)} to obtain a {@link SequencedChampMap}.
+     * {@link java.util.stream.Stream#collect(Collector)} to obtain a {@link ChampVectorMap}.
      *
      * @param keyMapper   The key mapper
      * @param valueMapper The value mapper
      * @param <K>         The key type
      * @param <V>         The value type
      * @param <T>         Initial {@link java.util.stream.Stream} elements type
-     * @return A {@link SequencedChampMap} Collector.
+     * @return A {@link ChampVectorMap} Collector.
      */
-    public static <K, V, T> Collector<T, ArrayList<T>, SequencedChampMap<K, V>> collector(
+    public static <K, V, T> Collector<T, ArrayList<T>, ChampVectorMap<K, V>> collector(
             Function<? super T, ? extends K> keyMapper, Function<? super T, ? extends V> valueMapper) {
         Objects.requireNonNull(keyMapper, "keyMapper is null");
         Objects.requireNonNull(valueMapper, "valueMapper is null");
-        return Collections.toListAndThen(arr -> SequencedChampMap.ofEntries(io.vavr.collection.Iterator.ofAll(arr)
+        return Collections.toListAndThen(arr -> ChampVectorMap.ofEntries(io.vavr.collection.Iterator.ofAll(arr)
                 .map(t -> Tuple.of(keyMapper.apply(t), valueMapper.apply(t)))));
     }
 
     @SuppressWarnings("unchecked")
-    public static <K, V> SequencedChampMap<K, V> empty() {
-        return (SequencedChampMap<K, V>) EMPTY;
+    public static <K, V> ChampVectorMap<K, V> empty() {
+        return (ChampVectorMap<K, V>) EMPTY;
     }
 
     /**
-     * Returns a SequencedChampMap containing tuples returned by {@code n} calls to a given Supplier {@code s}.
+     * Returns a ChampVectorMap containing tuples returned by {@code n} calls to a given Supplier {@code s}.
      *
      * @param <K> The key type
      * @param <V> The value type
-     * @param n   The number of elements in the SequencedChampMap
+     * @param n   The number of elements in the ChampVectorMap
      * @param s   The Supplier computing element values
-     * @return A SequencedChampMap of size {@code n}, where each element contains the result supplied by {@code s}.
+     * @return A ChampVectorMap of size {@code n}, where each element contains the result supplied by {@code s}.
      * @throws NullPointerException if {@code s} is null
      */
     @SuppressWarnings("unchecked")
-    public static <K, V> SequencedChampMap<K, V> fill(int n, Supplier<? extends Tuple2<? extends K, ? extends V>> s) {
+    public static <K, V> ChampVectorMap<K, V> fill(int n, Supplier<? extends Tuple2<? extends K, ? extends V>> s) {
         Objects.requireNonNull(s, "s is null");
         return ofEntries(Collections.fill(n, (Supplier<? extends Tuple2<K, V>>) s));
     }
 
     /**
-     * Narrows a widened {@code SequencedChampMap<? extends K, ? extends V>} to {@code SequencedChampMap<K, V>}
+     * Narrows a widened {@code ChampVectorMap<? extends K, ? extends V>} to {@code ChampVectorMap<K, V>}
      * by performing a type-safe cast. This is eligible because immutable/read-only
      * collections are covariant.
      *
-     * @param SequencedChampMap A {@code SequencedChampMap}.
+     * @param ChampVectorMap A {@code ChampVectorMap}.
      * @param <K>               Key type
      * @param <V>               Value type
-     * @return the given {@code SequencedChampMap} instance as narrowed type {@code SequencedChampMap<K, V>}.
+     * @return the given {@code ChampVectorMap} instance as narrowed type {@code ChampVectorMap<K, V>}.
      */
     @SuppressWarnings("unchecked")
-    public static <K, V> SequencedChampMap<K, V> narrow(SequencedChampMap<? extends K, ? extends V> SequencedChampMap) {
-        return (SequencedChampMap<K, V>) SequencedChampMap;
+    public static <K, V> ChampVectorMap<K, V> narrow(ChampVectorMap<? extends K, ? extends V> ChampVectorMap) {
+        return (ChampVectorMap<K, V>) ChampVectorMap;
     }
 
     /**
-     * Returns a singleton {@code SequencedChampMap}, i.e. a {@code SequencedChampMap} of one element.
+     * Returns a singleton {@code ChampVectorMap}, i.e. a {@code ChampVectorMap} of one element.
      *
      * @param entry A map entry.
      * @param <K>   The key type
@@ -265,13 +265,13 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
      * @return A new Map containing the given entry
      */
     @SuppressWarnings("unchecked")
-    public static <K, V> SequencedChampMap<K, V> of(Tuple2<? extends K, ? extends V> entry) {
+    public static <K, V> ChampVectorMap<K, V> of(Tuple2<? extends K, ? extends V> entry) {
         Objects.requireNonNull(entry, "entry is null");
-        return SequencedChampMap.<K, V>empty().put(entry._1, entry._2);
+        return ChampVectorMap.<K, V>empty().put(entry._1, entry._2);
     }
 
     /**
-     * Returns a singleton {@code SequencedChampMap}, i.e. a {@code SequencedChampMap} of one element.
+     * Returns a singleton {@code ChampVectorMap}, i.e. a {@code ChampVectorMap} of one element.
      *
      * @param key   A singleton map key.
      * @param value A singleton map value.
@@ -279,12 +279,12 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
      * @param <V>   The value type
      * @return A new Map containing the given entry
      */
-    public static <K, V> SequencedChampMap<K, V> of(K key, V value) {
-        return SequencedChampMap.<K, V>empty().put(key, value);
+    public static <K, V> ChampVectorMap<K, V> of(K key, V value) {
+        return ChampVectorMap.<K, V>empty().put(key, value);
     }
 
     /**
-     * Creates a SequencedChampMap of the given list of key-value pairs.
+     * Creates a ChampVectorMap of the given list of key-value pairs.
      *
      * @param k1  a key for the map
      * @param v1  the value for k1
@@ -294,7 +294,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
      * @param <V> The value type
      * @return A new Map containing the given entries
      */
-    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2) {
+    public static <K, V> ChampVectorMap<K, V> of(K k1, V v1, K k2, V v2) {
         TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K, V>();
         t.put(k1, v1);
         t.put(k2, v2);
@@ -302,7 +302,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     }
 
     /**
-     * Creates a SequencedChampMap of the given list of key-value pairs.
+     * Creates a ChampVectorMap of the given list of key-value pairs.
      *
      * @param k1  a key for the map
      * @param v1  the value for k1
@@ -314,7 +314,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
      * @param <V> The value type
      * @return A new Map containing the given entries
      */
-    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3) {
+    public static <K, V> ChampVectorMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3) {
         TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K, V>();
         t.put(k1, v1);
         t.put(k2, v2);
@@ -323,7 +323,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     }
 
     /**
-     * Creates a SequencedChampMap of the given list of key-value pairs.
+     * Creates a ChampVectorMap of the given list of key-value pairs.
      *
      * @param k1  a key for the map
      * @param v1  the value for k1
@@ -337,7 +337,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
      * @param <V> The value type
      * @return A new Map containing the given entries
      */
-    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4) {
+    public static <K, V> ChampVectorMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4) {
         TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K, V>();
         t.put(k1, v1);
         t.put(k2, v2);
@@ -347,7 +347,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     }
 
     /**
-     * Creates a SequencedChampMap of the given list of key-value pairs.
+     * Creates a ChampVectorMap of the given list of key-value pairs.
      *
      * @param k1  a key for the map
      * @param v1  the value for k1
@@ -363,7 +363,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
      * @param <V> The value type
      * @return A new Map containing the given entries
      */
-    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5) {
+    public static <K, V> ChampVectorMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5) {
         TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K, V>();
         t.put(k1, v1);
         t.put(k2, v2);
@@ -374,7 +374,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     }
 
     /**
-     * Creates a SequencedChampMap of the given list of key-value pairs.
+     * Creates a ChampVectorMap of the given list of key-value pairs.
      *
      * @param k1  a key for the map
      * @param v1  the value for k1
@@ -392,7 +392,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
      * @param <V> The value type
      * @return A new Map containing the given entries
      */
-    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5, K k6, V v6) {
+    public static <K, V> ChampVectorMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5, K k6, V v6) {
         TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K, V>();
         t.put(k1, v1);
         t.put(k2, v2);
@@ -404,7 +404,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     }
 
     /**
-     * Creates a SequencedChampMap of the given list of key-value pairs.
+     * Creates a ChampVectorMap of the given list of key-value pairs.
      *
      * @param k1  a key for the map
      * @param v1  the value for k1
@@ -424,7 +424,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
      * @param <V> The value type
      * @return A new Map containing the given entries
      */
-    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5, K k6, V v6, K k7, V v7) {
+    public static <K, V> ChampVectorMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5, K k6, V v6, K k7, V v7) {
         TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K, V>();
         t.put(k1, v1);
         t.put(k2, v2);
@@ -437,7 +437,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     }
 
     /**
-     * Creates a SequencedChampMap of the given list of key-value pairs.
+     * Creates a ChampVectorMap of the given list of key-value pairs.
      *
      * @param k1  a key for the map
      * @param v1  the value for k1
@@ -459,7 +459,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
      * @param <V> The value type
      * @return A new Map containing the given entries
      */
-    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5, K k6, V v6, K k7, V v7, K k8, V v8) {
+    public static <K, V> ChampVectorMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5, K k6, V v6, K k7, V v7, K k8, V v8) {
         TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K, V>();
         t.put(k1, v1);
         t.put(k2, v2);
@@ -473,7 +473,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     }
 
     /**
-     * Creates a SequencedChampMap of the given list of key-value pairs.
+     * Creates a ChampVectorMap of the given list of key-value pairs.
      *
      * @param k1  a key for the map
      * @param v1  the value for k1
@@ -497,7 +497,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
      * @param <V> The value type
      * @return A new Map containing the given entries
      */
-    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5, K k6, V v6, K k7, V v7, K k8, V v8, K k9, V v9) {
+    public static <K, V> ChampVectorMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5, K k6, V v6, K k7, V v7, K k8, V v8, K k9, V v9) {
         TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K, V>();
         t.put(k1, v1);
         t.put(k2, v2);
@@ -512,7 +512,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     }
 
     /**
-     * Creates a SequencedChampMap of the given list of key-value pairs.
+     * Creates a ChampVectorMap of the given list of key-value pairs.
      *
      * @param k1  a key for the map
      * @param v1  the value for k1
@@ -538,7 +538,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
      * @param <V> The value type
      * @return A new Map containing the given entries
      */
-    public static <K, V> SequencedChampMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5, K k6, V v6, K k7, V v7, K k8, V v8, K k9, V v9, K k10, V v10) {
+    public static <K, V> ChampVectorMap<K, V> of(K k1, V v1, K k2, V v2, K k3, V v3, K k4, V v4, K k5, V v5, K k6, V v6, K k7, V v7, K k8, V v8, K k9, V v9, K k10, V v10) {
         TransientLinkedHashMap<K, V> t = new TransientLinkedHashMap<K, V>();
         t.put(k1, v1);
         t.put(k2, v2);
@@ -554,14 +554,14 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     }
 
     /**
-     * Returns a {@code SequencedChampMap}, from a source java.util.Map.
+     * Returns a {@code ChampVectorMap}, from a source java.util.Map.
      *
      * @param map A map
      * @param <K> The key type
      * @param <V> The value type
      * @return A new Map containing the given map
      */
-    public static <K, V> SequencedChampMap<K, V> ofAll(Map<? extends K, ? extends V> map) {
+    public static <K, V> ChampVectorMap<K, V> ofAll(Map<? extends K, ? extends V> map) {
         Objects.requireNonNull(map, "map is null");
         TransientLinkedHashMap<K, V> m = new TransientLinkedHashMap<>();
         m.putAllEntries(map.entrySet());
@@ -569,7 +569,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     }
 
     /**
-     * Returns a {@code SequencedChampMap}, from entries mapped from stream.
+     * Returns a {@code ChampVectorMap}, from entries mapped from stream.
      *
      * @param stream      the source stream
      * @param entryMapper the entry mapper
@@ -578,13 +578,13 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
      * @param <V>         The value type
      * @return A new Map
      */
-    public static <T, K, V> SequencedChampMap<K, V> ofAll(java.util.stream.Stream<? extends T> stream,
-                                                          Function<? super T, Tuple2<? extends K, ? extends V>> entryMapper) {
+    public static <T, K, V> ChampVectorMap<K, V> ofAll(java.util.stream.Stream<? extends T> stream,
+                                                       Function<? super T, Tuple2<? extends K, ? extends V>> entryMapper) {
         return Maps.ofStream(empty(), stream, entryMapper);
     }
 
     /**
-     * Returns a {@code SequencedChampMap}, from entries mapped from stream.
+     * Returns a {@code ChampVectorMap}, from entries mapped from stream.
      *
      * @param stream      the source stream
      * @param keyMapper   the key mapper
@@ -594,14 +594,14 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
      * @param <V>         The value type
      * @return A new Map
      */
-    public static <T, K, V> SequencedChampMap<K, V> ofAll(java.util.stream.Stream<? extends T> stream,
-                                                          Function<? super T, ? extends K> keyMapper,
-                                                          Function<? super T, ? extends V> valueMapper) {
+    public static <T, K, V> ChampVectorMap<K, V> ofAll(java.util.stream.Stream<? extends T> stream,
+                                                       Function<? super T, ? extends K> keyMapper,
+                                                       Function<? super T, ? extends V> valueMapper) {
         return Maps.ofStream(empty(), stream, keyMapper, valueMapper);
     }
 
     /**
-     * Creates a SequencedChampMap of the given entries.
+     * Creates a ChampVectorMap of the given entries.
      *
      * @param entries Map entries
      * @param <K>     The key type
@@ -609,12 +609,12 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
      * @return A new Map containing the given entries
      */
     @SuppressWarnings("unchecked")
-    public static <K, V> SequencedChampMap<K, V> ofEntries(Map.Entry<? extends K, ? extends V>... entries) {
-        return SequencedChampMap.<K, V>empty().putAllEntries(Arrays.asList(entries));
+    public static <K, V> ChampVectorMap<K, V> ofEntries(Map.Entry<? extends K, ? extends V>... entries) {
+        return ChampVectorMap.<K, V>empty().putAllEntries(Arrays.asList(entries));
     }
 
     /**
-     * Creates a SequencedChampMap of the given entries.
+     * Creates a ChampVectorMap of the given entries.
      *
      * @param entries Map entries
      * @param <K>     The key type
@@ -622,12 +622,12 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
      * @return A new Map containing the given entries
      */
     @SuppressWarnings("unchecked")
-    public static <K, V> SequencedChampMap<K, V> ofEntries(Tuple2<? extends K, ? extends V>... entries) {
-        return SequencedChampMap.<K, V>empty().putAllTuples(Arrays.asList(entries));
+    public static <K, V> ChampVectorMap<K, V> ofEntries(Tuple2<? extends K, ? extends V>... entries) {
+        return ChampVectorMap.<K, V>empty().putAllTuples(Arrays.asList(entries));
     }
 
     /**
-     * Creates a SequencedChampMap of the given entries.
+     * Creates a ChampVectorMap of the given entries.
      *
      * @param entries Map entries
      * @param <K>     The key type
@@ -635,43 +635,43 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
      * @return A new Map containing the given entries
      */
     @SuppressWarnings("unchecked")
-    public static <K, V> SequencedChampMap<K, V> ofEntries(Iterable<? extends Tuple2<? extends K, ? extends V>> entries) {
+    public static <K, V> ChampVectorMap<K, V> ofEntries(Iterable<? extends Tuple2<? extends K, ? extends V>> entries) {
         Objects.requireNonNull(entries, "entries is null");
-        return SequencedChampMap.<K, V>empty().putAllTuples(entries);
+        return ChampVectorMap.<K, V>empty().putAllTuples(entries);
     }
 
     /**
-     * Returns a SequencedChampMap containing {@code n} values of a given Function {@code f}
+     * Returns a ChampVectorMap containing {@code n} values of a given Function {@code f}
      * over a range of integer values from 0 to {@code n - 1}.
      *
      * @param <K> The key type
      * @param <V> The value type
-     * @param n   The number of elements in the SequencedChampMap
+     * @param n   The number of elements in the ChampVectorMap
      * @param f   The Function computing element values
-     * @return A SequencedChampMap consisting of elements {@code f(0),f(1), ..., f(n - 1)}
+     * @return A ChampVectorMap consisting of elements {@code f(0),f(1), ..., f(n - 1)}
      * @throws NullPointerException if {@code f} is null
      */
     @SuppressWarnings("unchecked")
-    public static <K, V> SequencedChampMap<K, V> tabulate(int n, Function<? super Integer, ? extends Tuple2<? extends K, ? extends V>> f) {
+    public static <K, V> ChampVectorMap<K, V> tabulate(int n, Function<? super Integer, ? extends Tuple2<? extends K, ? extends V>> f) {
         Objects.requireNonNull(f, "f is null");
         return ofEntries(Collections.tabulate(n, (Function<? super Integer, ? extends Tuple2<K, V>>) f));
     }
 
     @Override
-    public <K2, V2> SequencedChampMap<K2, V2> bimap(Function<? super K, ? extends K2> keyMapper, Function<? super V, ? extends V2> valueMapper) {
+    public <K2, V2> ChampVectorMap<K2, V2> bimap(Function<? super K, ? extends K2> keyMapper, Function<? super V, ? extends V2> valueMapper) {
         Objects.requireNonNull(keyMapper, "keyMapper is null");
         Objects.requireNonNull(valueMapper, "valueMapper is null");
         final io.vavr.collection.Iterator<Tuple2<K2, V2>> entries = iterator().map(entry -> Tuple.of(keyMapper.apply(entry._1), valueMapper.apply(entry._2)));
-        return SequencedChampMap.ofEntries(entries);
+        return ChampVectorMap.ofEntries(entries);
     }
 
     @Override
-    public Tuple2<V, SequencedChampMap<K, V>> computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
+    public Tuple2<V, ChampVectorMap<K, V>> computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
         return Maps.computeIfAbsent(this, key, mappingFunction);
     }
 
     @Override
-    public Tuple2<Option<V>, SequencedChampMap<K, V>> computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+    public Tuple2<Option<V>, ChampVectorMap<K, V>> computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
         return Maps.computeIfPresent(this, key, remappingFunction);
     }
 
@@ -683,42 +683,42 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
 
     // We need this method to narrow the argument of `ofEntries`.
     // If this method is static with type args <K, V>, the jdk fails to infer types at the call site.
-    private SequencedChampMap<K, V> createFromEntries(Iterable<Tuple2<K, V>> tuples) {
-        return SequencedChampMap.ofEntries(tuples);
+    private ChampVectorMap<K, V> createFromEntries(Iterable<Tuple2<K, V>> tuples) {
+        return ChampVectorMap.ofEntries(tuples);
     }
 
     @Override
-    public SequencedChampMap<K, V> distinct() {
+    public ChampVectorMap<K, V> distinct() {
         return Maps.distinct(this);
     }
 
     @Override
-    public SequencedChampMap<K, V> distinctBy(Comparator<? super Tuple2<K, V>> comparator) {
+    public ChampVectorMap<K, V> distinctBy(Comparator<? super Tuple2<K, V>> comparator) {
         return Maps.distinctBy(this, this::createFromEntries, comparator);
     }
 
     @Override
-    public <U> SequencedChampMap<K, V> distinctBy(Function<? super Tuple2<K, V>, ? extends U> keyExtractor) {
+    public <U> ChampVectorMap<K, V> distinctBy(Function<? super Tuple2<K, V>, ? extends U> keyExtractor) {
         return Maps.distinctBy(this, this::createFromEntries, keyExtractor);
     }
 
     @Override
-    public SequencedChampMap<K, V> drop(int n) {
+    public ChampVectorMap<K, V> drop(int n) {
         return n <= 0 ? this : ofEntries(iterator(n));
     }
 
     @Override
-    public SequencedChampMap<K, V> dropRight(int n) {
-        return Maps.dropRight(this, this::createFromEntries, SequencedChampMap::empty, n);
+    public ChampVectorMap<K, V> dropRight(int n) {
+        return Maps.dropRight(this, this::createFromEntries, ChampVectorMap::empty, n);
     }
 
     @Override
-    public SequencedChampMap<K, V> dropUntil(Predicate<? super Tuple2<K, V>> predicate) {
+    public ChampVectorMap<K, V> dropUntil(Predicate<? super Tuple2<K, V>> predicate) {
         return Maps.dropUntil(this, this::createFromEntries, predicate);
     }
 
     @Override
-    public SequencedChampMap<K, V> dropWhile(Predicate<? super Tuple2<K, V>> predicate) {
+    public ChampVectorMap<K, V> dropWhile(Predicate<? super Tuple2<K, V>> predicate) {
         return Maps.dropWhile(this, this::createFromEntries, predicate);
     }
 
@@ -728,37 +728,37 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     }
 
     @Override
-    public SequencedChampMap<K, V> filter(BiPredicate<? super K, ? super V> predicate) {
+    public ChampVectorMap<K, V> filter(BiPredicate<? super K, ? super V> predicate) {
         TransientLinkedHashMap<K, V> t = toTransient();
         t.filterAll(e -> predicate.test(e.getKey(), e.getValue()));
         return t.root == this.root ? this : t.toImmutable();
     }
 
     @Override
-    public SequencedChampMap<K, V> filter(Predicate<? super Tuple2<K, V>> predicate) {
+    public ChampVectorMap<K, V> filter(Predicate<? super Tuple2<K, V>> predicate) {
         TransientLinkedHashMap<K, V> t = toTransient();
         t.filterAll(e -> predicate.test(new Tuple2<>(e.getKey(), e.getValue())));
         return t.root == this.root ? this : t.toImmutable();
     }
 
     @Override
-    public SequencedChampMap<K, V> filterKeys(Predicate<? super K> predicate) {
+    public ChampVectorMap<K, V> filterKeys(Predicate<? super K> predicate) {
         TransientLinkedHashMap<K, V> t = toTransient();
         t.filterAll(e -> predicate.test(e.getKey()));
         return t.root == this.root ? this : t.toImmutable();
     }
 
     @Override
-    public SequencedChampMap<K, V> filterValues(Predicate<? super V> predicate) {
+    public ChampVectorMap<K, V> filterValues(Predicate<? super V> predicate) {
         TransientLinkedHashMap<K, V> t = toTransient();
         t.filterAll(e -> predicate.test(e.getValue()));
         return t.root == this.root ? this : t.toImmutable();
     }
 
     @Override
-    public <K2, V2> SequencedChampMap<K2, V2> flatMap(BiFunction<? super K, ? super V, ? extends Iterable<Tuple2<K2, V2>>> mapper) {
+    public <K2, V2> ChampVectorMap<K2, V2> flatMap(BiFunction<? super K, ? super V, ? extends Iterable<Tuple2<K2, V2>>> mapper) {
         Objects.requireNonNull(mapper, "mapper is null");
-        return foldLeft(SequencedChampMap.<K2, V2>empty(), (acc, entry) -> {
+        return foldLeft(ChampVectorMap.<K2, V2>empty(), (acc, entry) -> {
             for (Tuple2<? extends K2, ? extends V2> mappedEntry : mapper.apply(entry._1, entry._2)) {
                 acc = acc.put(mappedEntry);
             }
@@ -781,12 +781,12 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     }
 
     @Override
-    public <C> io.vavr.collection.Map<C, SequencedChampMap<K, V>> groupBy(Function<? super Tuple2<K, V>, ? extends C> classifier) {
+    public <C> io.vavr.collection.Map<C, ChampVectorMap<K, V>> groupBy(Function<? super Tuple2<K, V>, ? extends C> classifier) {
         return Maps.groupBy(this, this::createFromEntries, classifier, empty());
     }
 
     @Override
-    public io.vavr.collection.Iterator<SequencedChampMap<K, V>> grouped(int size) {
+    public io.vavr.collection.Iterator<ChampVectorMap<K, V>> grouped(int size) {
         return Maps.grouped(this, this::createFromEntries, size);
     }
 
@@ -803,20 +803,20 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     }
 
     @Override
-    public SequencedChampMap<K, V> init() {
+    public ChampVectorMap<K, V> init() {
         if (isEmpty()) {
-            throw new UnsupportedOperationException("init of empty SequencedChampMap");
+            throw new UnsupportedOperationException("init of empty ChampVectorMap");
         }
         return remove(last()._1);
     }
 
     @Override
-    public Option<SequencedChampMap<K, V>> initOption() {
+    public Option<ChampVectorMap<K, V>> initOption() {
         return Maps.initOption(this);
     }
 
     /**
-     * An {@code SequencedChampMap}'s value is computed synchronously.
+     * An {@code ChampVectorMap}'s value is computed synchronously.
      *
      * @return false
      */
@@ -831,7 +831,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     }
 
     /**
-     * An {@code SequencedChampMap}'s value is computed eagerly.
+     * An {@code ChampVectorMap}'s value is computed eagerly.
      *
      * @return false
      */
@@ -867,61 +867,61 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     }
 
     @Override
-    public <K2, V2> SequencedChampMap<K2, V2> map(BiFunction<? super K, ? super V, Tuple2<K2, V2>> mapper) {
+    public <K2, V2> ChampVectorMap<K2, V2> map(BiFunction<? super K, ? super V, Tuple2<K2, V2>> mapper) {
         Objects.requireNonNull(mapper, "mapper is null");
-        return foldLeft(SequencedChampMap.empty(), (acc, entry) -> acc.put(entry.map(mapper)));
+        return foldLeft(ChampVectorMap.empty(), (acc, entry) -> acc.put(entry.map(mapper)));
     }
 
     @Override
-    public <K2> SequencedChampMap<K2, V> mapKeys(Function<? super K, ? extends K2> keyMapper) {
+    public <K2> ChampVectorMap<K2, V> mapKeys(Function<? super K, ? extends K2> keyMapper) {
         Objects.requireNonNull(keyMapper, "keyMapper is null");
         return map((k, v) -> Tuple.of(keyMapper.apply(k), v));
     }
 
     @Override
-    public <K2> SequencedChampMap<K2, V> mapKeys(Function<? super K, ? extends K2> keyMapper, BiFunction<? super V, ? super V, ? extends V> valueMerge) {
-        return Collections.mapKeys(this, SequencedChampMap.empty(), keyMapper, valueMerge);
+    public <K2> ChampVectorMap<K2, V> mapKeys(Function<? super K, ? extends K2> keyMapper, BiFunction<? super V, ? super V, ? extends V> valueMerge) {
+        return Collections.mapKeys(this, ChampVectorMap.empty(), keyMapper, valueMerge);
     }
 
     @Override
-    public <W> SequencedChampMap<K, W> mapValues(Function<? super V, ? extends W> mapper) {
+    public <W> ChampVectorMap<K, W> mapValues(Function<? super V, ? extends W> mapper) {
         Objects.requireNonNull(mapper, "mapper is null");
         return map((k, v) -> Tuple.of(k, mapper.apply(v)));
     }
 
     @Override
-    public SequencedChampMap<K, V> merge(io.vavr.collection.Map<? extends K, ? extends V> that) {
+    public ChampVectorMap<K, V> merge(io.vavr.collection.Map<? extends K, ? extends V> that) {
         return putAllTuples(that);
     }
 
     @Override
-    public <U extends V> SequencedChampMap<K, V> merge(io.vavr.collection.Map<? extends K, U> that,
-                                                       BiFunction<? super V, ? super U, ? extends V> collisionResolution) {
+    public <U extends V> ChampVectorMap<K, V> merge(io.vavr.collection.Map<? extends K, U> that,
+                                                    BiFunction<? super V, ? super U, ? extends V> collisionResolution) {
         return Maps.merge(this, this::createFromEntries, that, collisionResolution);
     }
 
     @Override
-    public SequencedChampMap<K, V> orElse(Iterable<? extends Tuple2<K, V>> other) {
+    public ChampVectorMap<K, V> orElse(Iterable<? extends Tuple2<K, V>> other) {
         return isEmpty() ? ofEntries(other) : this;
     }
 
     @Override
-    public SequencedChampMap<K, V> orElse(Supplier<? extends Iterable<? extends Tuple2<K, V>>> supplier) {
+    public ChampVectorMap<K, V> orElse(Supplier<? extends Iterable<? extends Tuple2<K, V>>> supplier) {
         return isEmpty() ? ofEntries(supplier.get()) : this;
     }
 
     @Override
-    public Tuple2<SequencedChampMap<K, V>, SequencedChampMap<K, V>> partition(Predicate<? super Tuple2<K, V>> predicate) {
+    public Tuple2<ChampVectorMap<K, V>, ChampVectorMap<K, V>> partition(Predicate<? super Tuple2<K, V>> predicate) {
         return Maps.partition(this, this::createFromEntries, predicate);
     }
 
     @Override
-    public SequencedChampMap<K, V> peek(Consumer<? super Tuple2<K, V>> action) {
+    public ChampVectorMap<K, V> peek(Consumer<? super Tuple2<K, V>> action) {
         return Maps.peek(this, action);
     }
 
     @Override
-    public <U extends V> SequencedChampMap<K, V> put(K key, U value, BiFunction<? super V, ? super U, ? extends V> merge) {
+    public <U extends V> ChampVectorMap<K, V> put(K key, U value, BiFunction<? super V, ? super U, ? extends V> merge) {
         return Maps.put(this, key, value, merge);
     }
 
@@ -937,39 +937,39 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
      * @return A new Map containing these elements and that entry.
      */
     @Override
-    public SequencedChampMap<K, V> put(K key, V value) {
+    public ChampVectorMap<K, V> put(K key, V value) {
         return putLast(key, value, false);
     }
 
     @Override
-    public SequencedChampMap<K, V> put(Tuple2<? extends K, ? extends V> entry) {
+    public ChampVectorMap<K, V> put(Tuple2<? extends K, ? extends V> entry) {
         return Maps.put(this, entry);
     }
 
     @Override
-    public <U extends V> SequencedChampMap<K, V> put(Tuple2<? extends K, U> entry,
-                                                     BiFunction<? super V, ? super U, ? extends V> merge) {
+    public <U extends V> ChampVectorMap<K, V> put(Tuple2<? extends K, U> entry,
+                                                  BiFunction<? super V, ? super U, ? extends V> merge) {
         return Maps.put(this, entry, merge);
     }
 
-    private SequencedChampMap<K, V> putAllEntries(Iterable<? extends Map.Entry<? extends K, ? extends V>> c) {
+    private ChampVectorMap<K, V> putAllEntries(Iterable<? extends Map.Entry<? extends K, ? extends V>> c) {
         TransientLinkedHashMap<K, V> t = toTransient();
         t.putAllEntries(c);
         return t.root == this.root ? this : t.toImmutable();
     }
 
     @SuppressWarnings("unchecked")
-    private SequencedChampMap<K, V> putAllTuples(Iterable<? extends Tuple2<? extends K, ? extends V>> c) {
-        if (isEmpty() && c instanceof SequencedChampMap<?, ?>) {
-            SequencedChampMap<?, ?> that = (SequencedChampMap<?, ?>) c;
-            return (SequencedChampMap<K, V>) that;
+    private ChampVectorMap<K, V> putAllTuples(Iterable<? extends Tuple2<? extends K, ? extends V>> c) {
+        if (isEmpty() && c instanceof ChampVectorMap<?, ?>) {
+            ChampVectorMap<?, ?> that = (ChampVectorMap<?, ?>) c;
+            return (ChampVectorMap<K, V>) that;
         }
         TransientLinkedHashMap<K, V> t = toTransient();
         t.putAllTuples(c);
         return t.root == this.root ? this : t.toImmutable();
     }
 
-    private SequencedChampMap<K, V> putLast(K key, V value, boolean moveToLast) {
+    private ChampVectorMap<K, V> putLast(K key, V value, boolean moveToLast) {
         ChampTrie.ChangeEvent<ChampSequenced.ChampSequencedEntry<K, V>> details = new ChampTrie.ChangeEvent<ChampSequenced.ChampSequencedEntry<K, V>>();
         ChampSequenced.ChampSequencedEntry<K, V> newEntry = new ChampSequenced.ChampSequencedEntry<>(key, value, vector.size() - offset);
         ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, V>> newRoot = root.put(null, newEntry,
@@ -979,7 +979,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
         if (details.isReplaced()
                 && details.getOldDataNonNull().getSequenceNumber() == details.getNewDataNonNull().getSequenceNumber()) {
             BitMappedTrie<Object> newVector = vector.update(details.getNewDataNonNull().getSequenceNumber() - offset, details.getNewDataNonNull());
-            return new SequencedChampMap<>(newRoot, newVector, size, offset);
+            return new ChampVectorMap<>(newRoot, newVector, size, offset);
         }
         if (details.isModified()) {
             BitMappedTrie<Object> newVector = vector;
@@ -1005,24 +1005,24 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
         return isEmpty() ? EMPTY : this;
     }
 
-    public SequencedChampMap<K, V> reject(Predicate<? super Tuple2<K, V>> predicate) {
-        return (SequencedChampMap) Maps.reject(this, this::createFromEntries, predicate);
+    public ChampVectorMap<K, V> reject(Predicate<? super Tuple2<K, V>> predicate) {
+        return (ChampVectorMap) Maps.reject(this, this::createFromEntries, predicate);
     }
 
-    public SequencedChampMap<K, V> reject(BiPredicate<? super K, ? super V> predicate) {
-        return (SequencedChampMap) Maps.reject(this, this::createFromEntries, predicate);
+    public ChampVectorMap<K, V> reject(BiPredicate<? super K, ? super V> predicate) {
+        return (ChampVectorMap) Maps.reject(this, this::createFromEntries, predicate);
     }
 
-    public SequencedChampMap<K, V> rejectKeys(Predicate<? super K> predicate) {
-        return (SequencedChampMap) Maps.rejectKeys(this, this::createFromEntries, predicate);
+    public ChampVectorMap<K, V> rejectKeys(Predicate<? super K> predicate) {
+        return (ChampVectorMap) Maps.rejectKeys(this, this::createFromEntries, predicate);
     }
 
-    public SequencedChampMap<K, V> rejectValues(Predicate<? super V> predicate) {
-        return (SequencedChampMap) Maps.rejectValues(this, this::createFromEntries, predicate);
+    public ChampVectorMap<K, V> rejectValues(Predicate<? super V> predicate) {
+        return (ChampVectorMap) Maps.rejectValues(this, this::createFromEntries, predicate);
     }
 
     @Override
-    public SequencedChampMap<K, V> remove(K key) {
+    public ChampVectorMap<K, V> remove(K key) {
         int keyHash = ChampSequenced.ChampSequencedEntry.keyHash(key);
         ChampTrie.ChangeEvent<ChampSequenced.ChampSequencedEntry<K, V>> details = new ChampTrie.ChangeEvent<ChampSequenced.ChampSequencedEntry<K, V>>();
         ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, V>> newRoot = root.remove(null,
@@ -1037,31 +1037,31 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     }
 
     @Override
-    public SequencedChampMap<K, V> removeAll(BiPredicate<? super K, ? super V> predicate) {
+    public ChampVectorMap<K, V> removeAll(BiPredicate<? super K, ? super V> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         return this.reject(predicate);
     }
 
     @Override
-    public SequencedChampMap<K, V> removeAll(Iterable<? extends K> keys) {
+    public ChampVectorMap<K, V> removeAll(Iterable<? extends K> keys) {
         Objects.requireNonNull(keys, "keys is null");
         TransientLinkedHashMap<K, V> t = toTransient();
         return t.removeAll(keys) ? t.toImmutable() : this;
     }
 
     @Override
-    public SequencedChampMap<K, V> removeKeys(Predicate<? super K> predicate) {
+    public ChampVectorMap<K, V> removeKeys(Predicate<? super K> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         return this.rejectKeys(predicate);
     }
 
     @Override
-    public SequencedChampMap<K, V> removeValues(Predicate<? super V> predicate) {
+    public ChampVectorMap<K, V> removeValues(Predicate<? super V> predicate) {
         Objects.requireNonNull(predicate, "predicate is null");
         return this.rejectValues(predicate);
     }
 
-    private SequencedChampMap<K, V> renumber(
+    private ChampVectorMap<K, V> renumber(
             ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, V>> root,
             BitMappedTrie<Object> vector,
             int size, int offset) {
@@ -1071,15 +1071,15 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
             Tuple2<ChampTrie.BitmapIndexedNode<ChampSequenced.ChampSequencedEntry<K, V>>, BitMappedTrie<Object>> result = ChampSequenced.ChampSequencedData.<ChampSequenced.ChampSequencedEntry<K, V>>vecRenumber(
                     size, root, vector, owner, ChampSequenced.ChampSequencedEntry::entryKeyHash, ChampSequenced.ChampSequencedEntry::keyEquals,
                     (e, seq) -> new ChampSequenced.ChampSequencedEntry<>(e.getKey(), e.getValue(), seq));
-            return new SequencedChampMap<>(
+            return new ChampVectorMap<>(
                     result._1, result._2,
                     size, 0);
         }
-        return new SequencedChampMap<>(root, vector, size, offset);
+        return new ChampVectorMap<>(root, vector, size, offset);
     }
 
     @Override
-    public SequencedChampMap<K, V> replace(Tuple2<K, V> currentEntry, Tuple2<K, V> newEntry) {
+    public ChampVectorMap<K, V> replace(Tuple2<K, V> currentEntry, Tuple2<K, V> newEntry) {
         // currentEntry and newEntry are the same => do nothing
         if (Objects.equals(currentEntry, newEntry)) {
             return this;
@@ -1133,32 +1133,32 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
             return renumber(newRoot, newVector, size - 1, newOffset);
         } else {
             // we did not change the size of the map => no renumbering is needed
-            return new SequencedChampMap<>(newRoot, newVector, size, newOffset);
+            return new ChampVectorMap<>(newRoot, newVector, size, newOffset);
         }
     }
 
     @Override
-    public SequencedChampMap<K, V> replace(K key, V oldValue, V newValue) {
+    public ChampVectorMap<K, V> replace(K key, V oldValue, V newValue) {
         return Maps.replace(this, key, oldValue, newValue);
     }
 
     @Override
-    public SequencedChampMap<K, V> replaceAll(Tuple2<K, V> currentElement, Tuple2<K, V> newElement) {
+    public ChampVectorMap<K, V> replaceAll(Tuple2<K, V> currentElement, Tuple2<K, V> newElement) {
         return Maps.replaceAll(this, currentElement, newElement);
     }
 
     @Override
-    public SequencedChampMap<K, V> replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
+    public ChampVectorMap<K, V> replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
         return Maps.replaceAll(this, function);
     }
 
     @Override
-    public SequencedChampMap<K, V> replaceValue(K key, V value) {
+    public ChampVectorMap<K, V> replaceValue(K key, V value) {
         return Maps.replaceValue(this, key, value);
     }
 
     @Override
-    public SequencedChampMap<K, V> retainAll(Iterable<? extends Tuple2<K, V>> elements) {
+    public ChampVectorMap<K, V> retainAll(Iterable<? extends Tuple2<K, V>> elements) {
         TransientLinkedHashMap<K, V> t = toTransient();
         t.retainAllTuples(elements);
         return t.root == this.root ? this : t.toImmutable();
@@ -1176,7 +1176,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     }
 
     @Override
-    public SequencedChampMap<K, V> scan(
+    public ChampVectorMap<K, V> scan(
             Tuple2<K, V> zero,
             BiFunction<? super Tuple2<K, V>, ? super Tuple2<K, V>, ? extends Tuple2<K, V>> operation) {
         return Maps.scan(this, zero, operation, this::createFromEntries);
@@ -1188,22 +1188,22 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     }
 
     @Override
-    public io.vavr.collection.Iterator<SequencedChampMap<K, V>> slideBy(Function<? super Tuple2<K, V>, ?> classifier) {
+    public io.vavr.collection.Iterator<ChampVectorMap<K, V>> slideBy(Function<? super Tuple2<K, V>, ?> classifier) {
         return Maps.slideBy(this, this::createFromEntries, classifier);
     }
 
     @Override
-    public io.vavr.collection.Iterator<SequencedChampMap<K, V>> sliding(int size) {
+    public io.vavr.collection.Iterator<ChampVectorMap<K, V>> sliding(int size) {
         return Maps.sliding(this, this::createFromEntries, size);
     }
 
     @Override
-    public io.vavr.collection.Iterator<SequencedChampMap<K, V>> sliding(int size, int step) {
+    public io.vavr.collection.Iterator<ChampVectorMap<K, V>> sliding(int size, int step) {
         return Maps.sliding(this, this::createFromEntries, size, step);
     }
 
     @Override
-    public Tuple2<SequencedChampMap<K, V>, SequencedChampMap<K, V>> span(Predicate<? super Tuple2<K, V>> predicate) {
+    public Tuple2<ChampVectorMap<K, V>, ChampVectorMap<K, V>> span(Predicate<? super Tuple2<K, V>> predicate) {
         return Maps.span(this, this::createFromEntries, predicate);
     }
 
@@ -1222,39 +1222,39 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
 
     @Override
     public String stringPrefix() {
-        return "SequencedChampMap";
+        return "ChampVectorMap";
     }
 
     @Override
-    public SequencedChampMap<K, V> tail() {
+    public ChampVectorMap<K, V> tail() {
         if (isEmpty()) {
-            throw new UnsupportedOperationException("tail of empty SequencedChampMap");
+            throw new UnsupportedOperationException("tail of empty ChampVectorMap");
         }
         return remove(head()._1);
     }
 
     @Override
-    public Option<SequencedChampMap<K, V>> tailOption() {
+    public Option<ChampVectorMap<K, V>> tailOption() {
         return Maps.tailOption(this);
     }
 
     @Override
-    public SequencedChampMap<K, V> take(int n) {
+    public ChampVectorMap<K, V> take(int n) {
         return Maps.take(this, this::createFromEntries, n);
     }
 
     @Override
-    public SequencedChampMap<K, V> takeRight(int n) {
+    public ChampVectorMap<K, V> takeRight(int n) {
         return Maps.takeRight(this, this::createFromEntries, n);
     }
 
     @Override
-    public SequencedChampMap<K, V> takeUntil(Predicate<? super Tuple2<K, V>> predicate) {
+    public ChampVectorMap<K, V> takeUntil(Predicate<? super Tuple2<K, V>> predicate) {
         return Maps.takeUntil(this, this::createFromEntries, predicate);
     }
 
     @Override
-    public SequencedChampMap<K, V> takeWhile(Predicate<? super Tuple2<K, V>> predicate) {
+    public ChampVectorMap<K, V> takeWhile(Predicate<? super Tuple2<K, V>> predicate) {
         return Maps.takeWhile(this, this::createFromEntries, predicate);
     }
 
@@ -1267,14 +1267,14 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
     @SuppressWarnings("rawtypes")
     public io.vavr.collection.Map toLinkedMap(Function f) {
         Objects.requireNonNull(f, "f is null");
-        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = SequencedChampMap::of;
-        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = SequencedChampMap::ofEntries;
-        return ValueModule.toMap(this, SequencedChampMap.empty(), ofElement, ofAll, f);
+        Function<Tuple2<? extends K, ? extends V>, io.vavr.collection.Map<K, V>> ofElement = ChampVectorMap::of;
+        Function<Iterable<Tuple2<? extends K, ? extends V>>, io.vavr.collection.Map<K, V>> ofAll = ChampVectorMap::ofEntries;
+        return ValueModule.toMap(this, ChampVectorMap.empty(), ofElement, ofAll, f);
     }
 
     @Override
     public Set<Tuple2<K, V>> toLinkedSet() {
-        return (io.vavr.collection.Set) ValueModule.toTraversable(this, SequencedChampSet.empty(), SequencedChampSet::of, SequencedChampSet::ofAll);
+        return (io.vavr.collection.Set) ValueModule.toTraversable(this, ChampVectorSet.empty(), ChampVectorSet::of, ChampVectorSet::ofAll);
     }
 
     @Override
@@ -1323,17 +1323,17 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
         private static final long serialVersionUID = 1L;
 
         // the instance to be serialized/deserialized
-        private transient SequencedChampMap<K, V> map;
+        private transient ChampVectorMap<K, V> map;
 
         /**
-         * Constructor for the case of serialization, called by {@link SequencedChampMap#writeReplace()}.
+         * Constructor for the case of serialization, called by {@link ChampVectorMap#writeReplace()}.
          * <p/>
          * The constructor of a SerializationProxy takes an argument that concisely represents the logical state of
          * an instance of the enclosing class.
          *
          * @param map a map
          */
-        SerializationProxy(SequencedChampMap<K, V> map) {
+        SerializationProxy(ChampVectorMap<K, V> map) {
             this.map = map;
         }
 
@@ -1408,7 +1408,7 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
          */
         private BitMappedTrie<Object> vector;
 
-        TransientLinkedHashMap(SequencedChampMap<K, V> m) {
+        TransientLinkedHashMap(ChampVectorMap<K, V> m) {
             vector = m.vector;
             root = m.root;
             offset = m.offset;
@@ -1539,11 +1539,11 @@ public class SequencedChampMap<K, V> implements io.vavr.collection.Map<K, V>, Se
             }
         }
 
-        public SequencedChampMap<K, V> toImmutable() {
+        public ChampVectorMap<K, V> toImmutable() {
             owner = null;
             return isEmpty()
                     ? empty()
-                    : new SequencedChampMap<>(root, vector, size, offset);
+                    : new ChampVectorMap<>(root, vector, size, offset);
         }
 
         static class VectorSideEffectPredicate<K, V> implements Predicate<ChampSequenced.ChampSequencedEntry<K, V>> {
